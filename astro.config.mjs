@@ -6,6 +6,7 @@ import path from 'node:path';
 import { IS_PUBLIC, SITE_URL } from './src/config.ts';
 import { remarkStrongFix } from './src/remark-strong-fix.mjs';
 import { remarkFlow } from './src/remark-flow.mjs';
+import { remarkFigures } from './src/remark-figures.mjs';
 import { rehypeExternalLinks } from './src/rehype-external-links.mjs';
 
 /**
@@ -53,7 +54,8 @@ export default defineConfig({
   markdown: {
     // 日本語で閉じられなかった強調記号を救済してから、フロー変換にかける。
     // 順序が逆だと、残ったアスタリスクがフロー表示へそのまま出る
-    remarkPlugins: [remarkStrongFix, remarkFlow],
+    // 日次レポートの節の頭に図を足す（frontmatter の infographic と過去の号の snapshot から）
+    remarkPlugins: [remarkStrongFix, remarkFlow, remarkFigures],
     // 本文の外部リンクに target と rel を一括付与する
     rehypePlugins: [rehypeExternalLinks],
   },

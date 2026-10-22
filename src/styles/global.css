@@ -435,3 +435,296 @@ button { font: inherit; }
   .flow-node { font-size: 13.5px; padding: 4px 11px; }
   .flow-primary .flow-node { font-size: 14.5px; padding: 6px 13px; }
 }
+
+/* ── 本文の図（remark-figures.mjs） ──────────────────────
+   節の頭に置く図。文字だけの本文で読み疲れないよう、読む前に
+   流れと水準をつかませる。中身は frontmatter の infographic と
+   過去の号の snapshot から組む。
+
+   色の規則は資金フロー表示と同じ。枠と見出しはアクセント（紺）、
+   緑・赤は変化の向き（▲▼と数値）にだけ使う。 */
+.prose .fig {
+  position: relative;
+  margin: 1.8em 0 2em;
+  padding: 18px 20px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-family: var(--sa);
+}
+.prose .fig figcaption {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+.fig-k {
+  flex: none;
+  align-self: center;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-indent: .14em;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.fig-sub { font-size: 12px; font-weight: 400; }
+.prose .fig-note {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line-2);
+  font-size: 13.5px;
+  line-height: 1.8;
+}
+.fig .up, .fig .up i, .fig .up em { color: var(--up); }
+.fig .down, .fig .down i, .fig .down em { color: var(--down); }
+.fig i { font-style: normal; font-size: .8em; }
+.fig em { font-style: normal; }
+
+/* 資金フロー：帯 */
+.prose .flow-strip {
+  list-style: none;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 22px;
+  margin: 0 0 18px;
+  padding: 0;
+}
+.prose .flow-strip li {
+  position: relative;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  min-height: 56px;
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+.flow-strip li:first-child { border-color: var(--accent); }
+.flow-strip li + li::before {
+  content: "→";
+  position: absolute;
+  left: -18px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* 資金フロー：反応の木。根 → 中段 → 末端を縦に積む */
+.tree { display: grid; gap: 22px; }
+.tier { display: grid; gap: 12px; position: relative; }
+.tier-root { grid-template-columns: minmax(0, 360px); justify-content: center; }
+.tier-mid, .tier-leaf { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+.tier + .tier::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -18px;
+  height: 14px;
+  border-left: 2px solid var(--accent);
+}
+.node {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  text-align: center;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+}
+.node b { font-size: 15px; line-height: 1.5; }
+.node span { font-size: 12.5px; }
+.node.root { background: var(--accent); border-color: var(--accent); }
+.node.root b, .node.root span { color: var(--accent-ink); }
+.node.leaf { border-top: 3px solid var(--line-2); }
+.node.leaf.up { border-top-color: var(--up); }
+.node.leaf.down { border-top-color: var(--down); }
+.node.up b, .node.down b, .node.up span, .node.down span { color: var(--ink); }
+
+/* 指標：予想と結果 */
+.focus-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+.cmp, .hl {
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.cmp-h { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.cmp-h b { font-size: 15px; }
+.cmp-h span { font-size: 12px; }
+.cmp-h em {
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.bar {
+  display: grid;
+  grid-template-columns: 30px 1fr 54px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  margin-top: 6px;
+}
+.track { height: 12px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.fill { display: block; height: 100%; border-radius: 3px; }
+.fill.fc { background: var(--line-2); }
+.fill.ac { background: var(--accent); }
+.bar .val { text-align: right; font-variant-numeric: tabular-nums; }
+.bar .val.strong { font-weight: 700; font-size: 15px; }
+.hl { display: grid; align-content: center; gap: 4px; text-align: center; }
+.hl span, .hl small { font-size: 12.5px; color: var(--ink); }
+.hl b { font-size: 30px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+
+/* 金利：数値カード＋解説 */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+.stat {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.stat .k, .stat small { font-size: 12.5px; color: var(--ink); }
+.stat b { font-size: 30px; line-height: 1.2; color: var(--ink); font-variant-numeric: tabular-nums; }
+.stat .chg { font-size: 14px; font-weight: 700; }
+.fig .aside {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--accent);
+  background: var(--surface-2);
+  border-radius: 0 8px 8px 0;
+}
+.fig .aside b { font-size: 13.5px; }
+.prose .fig .aside p { margin: 4px 0 0; font-size: 13.5px; line-height: 1.8; }
+
+/* 金：綱引き（天秤） */
+.tug {
+  display: grid;
+  grid-template-columns: 1fr 96px 1fr;
+  align-items: center;
+  gap: 12px;
+}
+.pan { display: grid; gap: 6px; }
+.pan.light { align-self: start; }
+.pan.heavy { align-self: end; }
+.pan-h { font-size: 11px; letter-spacing: .12em; text-align: center; }
+.prose .pan ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.prose .pan li {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  text-align: center;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+}
+.pan li b { font-size: 14px; color: var(--ink); }
+.pan li span { font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink); }
+.scale { width: 100%; height: auto; }
+.scale line { stroke: var(--accent); stroke-width: 3.5; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.scale circle { fill: var(--accent); }
+.price {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.price > span { font-size: 12px; letter-spacing: .1em; color: var(--ink); }
+.price b { font-size: 28px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.price b small { font-size: 13px; margin-left: 2px; }
+.price em { font-size: 16px; font-weight: 700; }
+.price .sub { flex-basis: 100%; font-size: 12px; color: var(--ink); }
+
+/* 注目銘柄 */
+.prose .fig-movers ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+.prose .fig-movers li {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.fig-movers li b, .fig-movers li small { color: var(--ink); }
+.fig-movers li b { font-size: 15px; }
+.fig-movers li em { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.fig-movers li small { font-size: 12px; }
+
+/* 定点の推移（折れ線） */
+.fig-trend .plot { position: relative; }
+.fig-trend svg { display: block; width: 100%; height: 110px; overflow: visible; }
+.fig-trend .line { fill: none; stroke: var(--accent); stroke-width: 2.2; stroke-linejoin: round; }
+.fig-trend .grid { stroke: var(--line-2); stroke-width: 1; stroke-dasharray: 3 4; vector-effect: non-scaling-stroke; }
+.fig-trend .dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--surface);
+}
+.trend-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin-top: 8px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.trend-meta small { margin-left: 4px; font-size: 11px; }
+.trend-meta .now { margin-left: auto; }
+.trend-meta .now b { font-size: 15px; color: var(--accent); }
+
+@media (max-width: 560px) {
+  .prose .fig { padding: 14px 14px 12px; }
+  /* 狭い画面でも横並びを残す。縦に積むと図が画面3枚分に伸びる */
+  .prose .flow-strip { grid-auto-flow: row; grid-template-columns: 1fr 1fr; gap: 10px 22px; }
+  .prose .flow-strip li { min-height: 0; font-size: 13px; padding: 7px 6px; }
+  .flow-strip li:nth-child(odd)::before { display: none; }
+  .tier { gap: 8px; }
+  .node { padding: 8px 6px; }
+  .node b { font-size: 13px; }
+  .node span { font-size: 11.5px; }
+  .tug { grid-template-columns: 1fr 56px 1fr; gap: 8px; }
+  .stat b, .hl b { font-size: 26px; }
+}
