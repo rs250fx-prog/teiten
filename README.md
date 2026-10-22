@@ -130,7 +130,7 @@ JWT を署名まで検証している。**環境変数が未設定なら誰も�
 | `CF_ACCESS_TEAM_DOMAIN` | `〇〇.cloudflareaccess.com` |
 | `CF_ACCESS_AUD` | Access アプリケーションの Audience タグ |
 | `GITHUB_TOKEN` | fine-grained PAT。**このリポジトリの `contents: write` だけ** |
-| `GITHUB_REPO` | `rs250fx-prog/financial-report` |
+| `GITHUB_REPO` | 省略可。既定は `rs250fx-prog/teiten`（旧名 `financial-report` は入れない。リダイレクトで subrequest が倍になる） |
 
 ローカルで作業するときは `python tools/admin.py` のほうが速い。
 あちらは `check-report.py` をそのまま回せる。

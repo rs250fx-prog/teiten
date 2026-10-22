@@ -6,7 +6,7 @@
 - **正規ドメイン**：apex（`https://teiten.trade/`）。`www` は301で apex へ寄せる
 - **本番URL**：https://teiten.trade （Cloudflare Pages カスタムドメイン、接続作業中）
 - **既定ホスト**：https://financial-report-bad.pages.dev（`pages.dev` のサブドメインは全アカウント共通の名前空間で、`financial-report` は取得済みだったため `-bad` が自動付与された。プロジェクト名自体は `financial-report`）
-- **リポジトリ**：rs250fx-prog/financial-report（`main` ブランチ、push で自動デプロイ）
+- **リポジトリ**：rs250fx-prog/teiten（`main` ブランチ、push で自動デプロイ。旧名 `financial-report` からの改名。旧名はリダイレクトされるが、`/admin` の API ではそのリダイレクトも subrequest に数えられる）
 - **ローカル**：`D:\OneDrive\01_仕事・事業\M16BIZ\financial-report`
 
 ---
@@ -399,7 +399,7 @@ GitHub API 経由で `draft` を書き換えてコミットする。ローカル
 | `CF_ACCESS_TEAM_DOMAIN` | 例 `example.cloudflareaccess.com` |
 | `CF_ACCESS_AUD` | Access アプリケーションの Audience タグ |
 | `GITHUB_TOKEN` | fine-grained PAT。**このリポジトリの `contents: write` だけに絞る** |
-| `GITHUB_REPO` | 省略可。既定は `rs250fx-prog/financial-report` |
+| `GITHUB_REPO` | 省略可。既定は `rs250fx-prog/teiten`。**旧名 `financial-report` を入れない**（リダイレクトで subrequest が倍になる） |
 
 Access のアプリケーションは **`teiten.trade/admin*`** に対して作る。画面もAPIも
 `/admin` 配下に置いてあるので、この1本で両方を覆える。
@@ -531,6 +531,7 @@ python tools/make-og.py
 
 | 日付 | 内容 |
 |---|---|
+| 2026-10-22 | **`/admin` の記事一覧が「Too many subrequests by single Worker invocation」で読み込めなくなったのを直した。**Worker は1回の実行で外部へ出せる回数に上限があり（無料枠は50回）、一覧は GitHub の REST API を**記事1件につき1回**呼んでいた。そこへ、リポジトリが `financial-report` から `teiten` に改名されていて、旧名への呼び出しが毎回 301 でリダイレクトされ、**リダイレクトも1回に数えられる**ため実質2倍になった。記事は28本（上限は40）で、(2＋28)×2＝60回で超えた。**1本ずつ取る作りは、記事が増えるほど上限に近づく**ので、GitHub の GraphQL で日次・週次の2ディレクトリの本文を**1回**でまとめて取る形に変え（`functions/admin/api/reports.ts`）、回数が記事数に依らないようにした。あわせて参照先の既定を `rs250fx-prog/teiten` に更新（`functions/admin/_lib.ts`）。公開・下書き戻し（`publish.ts`）は2回しか呼ばないので REST のまま。`GITHUB_REPO` を Pages に登録している場合は旧名を入れない |
 | 2026-10-15 | **note 用の図解（縦長インフォグラフィック、幅1080）を原稿から書き出せるようにした（`tools/make-infographic.mjs`）。**従来は ChatGPT に毎回作らせていたが、数字の書き違い（ガソリン指数の「前月比」を「前年比」と表示）や、原稿に無い要素（FRB議長の似顔絵と発言）が入った。日次 frontmatter に `infographic` を足し、`node tools/make-infographic.mjs <日付>` が `note/info_YYYYMMDD.png` を出す。構成は資金フローの帯・主役の指標（予想と結果）・反応のフロー図・2年債と10年債・金の天秤・主要マーケットの数字・Market Bias と注目点。**数値は `infographic` に直接書かせず、各項目の `ref`（ラベルの部分一致）で `snapshot` を引く。**`snapshot` に無い数字（米2年債・Nasdaq・ダウ・個別銘柄など）だけを `infographic.quotes` に1回書く。サムネイルと同じく文字はフォントの輪郭をパスで描き（クラウドに日本語フォントが無いため）、背景画像は使わず全部スクリプトで組む。収まらない文言・行数オーバー・引けない `ref` はエラーで止める。予想と結果の棒は0起点で描く（差が小さければ小さく見える）。人物の似顔絵と発言は入れない。ビルド後に `copy-thumbs.mjs` が `dist/info/` へ写し、`https://teiten.trade/info/<日付>.png` で配る。定期実行の手順に 7-C を足し、完了報告にURLを載せる。週次には入れていない |
 | 2026-10-14 | **ドル指数・日経225・日経VI・原油（WTI・Brent）・Nasdaq・ダウを Yahoo Finance の日足に固定し、`tools/fetch-market.py` で機械的に取る。**`fetch-indicators.py` の最後で呼ばれる。10/13・10/14 号はドル指数が報道の寄せ集めで 102.59 / 102.2 / 101.99 と割れて未確認になり、10/14 号は自動公開が止まった。FRED の実質金利（9/30）や金（10/6）と同じく、原因は値が無いことではなく取り方だった。Yahoo の 10/13 の値は、清算値・終値を書いた報道と一致した（DXY 102.18・日経 67,777.52・WTI 94.14・Brent 105.69）。**Yahoo は一次の出所ではない**が、系列が固定され日付つきの値が機械で取れることを取った。取引中の足は捨て、確定した足だけを出す。**報道と系列が食い違ったら系列を採る**規則を §10「数値の扱い」と `docs/SOURCES.md` §1 に足した。為替（ドル円・ユーロドル）は、Yahoo の日足が前日の引け値になって1日ずれるため入れない。BTC の ETF 資金フローと日本10年債の当日分は、取得元の制約で未確認のまま残る。非公式のAPIなので、止まったら報道の突き合わせに戻る。**8時（JST）の実行では、ドル指数と先物の前営業日の日足がまだ開いている**（Yahoo の日足はニューヨークの0時に確定する）。そのため確定値は前々営業日までで、前営業日は時刻つきの「読み取り」として別に出し、終値としては使わない。前営業日の原油の清算値とドル指数の終値は、従来どおり報道から取る。日経・米国の株価指数・VIX は前営業日の終値が出る。あわせて 10/14 号の未確認だったドル指数を 102.18 で埋めた（差し替え。§10 の規則どおり注記は付けない） |
 | 2026-10-06 | **金（XAU/USD）の取得元を USAGOLD の価格履歴（日別カレンダー）に固定し、`tools/fetch-gold.py` で機械的に取る。**従来の取得元（USAGOLD 日次レポート）は定期実行から 403 で開けず、報道の値を寄せ集めていたため、毎朝「終値が割れる」状態だった（10/6 号が下書きで止まった直接の原因）。価格履歴は「XAUUSD、山岳部時間 15:00 に記録」と定義が明記された1993年からの日次の表で、ページを GET して cookie を受けたうえで admin-ajax に POST すれば読める。**ページ上部の「Yesterday」は表と一致しないので読まない。**山岳部時間で当日のセルは同日中は動くため、8時の実行で読む最新日の値には読み取り時点を添え、翌号で確定値と照合する（FRED の遅れ系列と同じ扱い）。クラウドの実行環境から通るかは次回の実行で確かめる |
