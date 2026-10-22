@@ -9,10 +9,10 @@
 
 export interface Env {
   GITHUB_TOKEN?: string;
-  GITHUB_REPO?: string; // 例 rs250fx-prog/financial-report
+  GITHUB_REPO?: string; // 例 rs250fx-prog/teiten
 }
 
-export const REPO_DEFAULT = 'rs250fx-prog/financial-report';
+export const REPO_DEFAULT = 'rs250fx-prog/teiten';
 export const BRANCH = 'main';
 
 export const json = (data: unknown, status = 200) =>
