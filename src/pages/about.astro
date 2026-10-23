@@ -2,7 +2,7 @@
 import Base from '../layouts/Base.astro';
 import Subscribe from '../components/Subscribe.astro';
 import { listReports } from '../lib/content';
-import { SITE_NAME, PUBLISHER, PUBLISHER_URL, CADENCE, OPERATOR } from '../config';
+import { SITE_NAME, PUBLISHER, PUBLISHER_URL, CADENCE, OPERATOR, EDITOR } from '../config';
 
 const reports = await listReports();
 const latest = reports[0];
@@ -57,6 +57,12 @@ const latest = reports[0];
       </p>
       <p>
         週次まとめでは、その週の日次レポートを積み上げ直し、個別の値動きではなく資金の移動として何が起きたのかを整理します。
+      </p>
+
+      <h2 id="editor">編集者</h2>
+      <p>
+        <strong>{EDITOR.name}</strong>。{PUBLISHER} 代表。金融業界の出身で、各号の内容と公開の判断に責任を持っています。
+        各号の署名「{EDITOR.role}：{EDITOR.name}」はこのページを指します。
       </p>
 
       <h2 id="publisher">運営者情報</h2>

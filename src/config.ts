@@ -40,6 +40,19 @@ export const PUBLISHER = 'Financial and Marketing M16';
 export const PUBLISHER_URL = 'https://fam16.com/';
 
 /**
+ * 編集者。記事の署名（「編集：村瀬 一郎」）と構造化データの author に使う。
+ *
+ * 金融情報は YMYL 領域で、誰が責任を持って出しているかが検索評価に直結する。
+ * 発行元（組織）だけでなく個人名を出すのはそのため。肩書は「編集」にしている。
+ * 原稿は定期実行が作り、人が確認して公開する運用なので、「執筆」より実態に近い。
+ */
+export const EDITOR = {
+  name: '村瀬 一郎',
+  role: '編集',
+  url: `${SITE_URL}/about/#editor`,
+} as const;
+
+/**
  * 事業者情報。個人情報保護法32条1項により、個人情報取扱事業者の
  * 名称・住所・代表者名は本人が知り得る状態に置く必要がある。
  * プライバシーポリシーと運営者情報の両方がここを参照する。

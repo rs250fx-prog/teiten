@@ -6,6 +6,7 @@ import WeeklyCard from '../components/WeeklyCard.astro';
 import Subscribe from '../components/Subscribe.astro';
 import Colophon from '../components/Colophon.astro';
 import { listReports, listWeekly, dotted } from '../lib/content';
+import { EDITOR } from '../config';
 
 const reports = await listReports();
 const weekly = await listWeekly();
@@ -49,6 +50,7 @@ const weeklyTop = weekly.slice(0, 3);
 
             <div class="by">
               <span>Financial and Marketing M16</span>
+              <span>{EDITOR.role}：{EDITOR.name}</span>
               {latest.data.updated && <span>更新 {latest.data.updated}</span>}
               {latest.data.tags.length > 0 && <span>{latest.data.tags.join('・')}</span>}
             </div>

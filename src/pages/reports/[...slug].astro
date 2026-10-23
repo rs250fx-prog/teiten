@@ -10,7 +10,7 @@ import {
   allReports, listReports, listWeekly, relatedReports, shortTitle,
   dotted, longDate, weekdayJa, tagSlug, isoJst,
 } from '../../lib/content';
-import { SITE_URL, SITE_NAME, OPERATOR, PUBLISHER_URL } from '../../config';
+import { SITE_URL, SITE_NAME, OPERATOR, PUBLISHER_URL, EDITOR } from '../../config';
 
 export async function getStaticPaths() {
   const entries = await allReports();
@@ -71,9 +71,11 @@ const schema = [
     mainEntityOfPage: { '@type': 'WebPage', '@id': pageUrl },
     image: new URL(d.ogImage ?? '/og-default.png', SITE_URL).href,
     author: {
-      '@type': 'Organization',
-      name: OPERATOR.name,
-      url: PUBLISHER_URL,
+      '@type': 'Person',
+      name: EDITOR.name,
+      jobTitle: '編集者',
+      url: EDITOR.url,
+      worksFor: { '@type': 'Organization', name: OPERATOR.name, url: PUBLISHER_URL },
     },
     publisher: { '@id': `${SITE_URL}/#organization` },
     isPartOf: { '@id': `${SITE_URL}/#website` },
@@ -125,6 +127,7 @@ const breadcrumbs = [
         <p class="deck">{d.deck}</p>
         <div class="by">
           <span>Financial and Marketing M16</span>
+          <span>{EDITOR.role}：<a href={EDITOR.url}>{EDITOR.name}</a></span>
           <span class="num">{dotted(d.date)} 発行</span>
           {d.updated && <span>更新 {d.updated}</span>}
         </div>
