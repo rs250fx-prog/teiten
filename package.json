@@ -19,6 +19,9 @@
   "devDependencies": {
     "fontkitten": "^1.0.3",
     "js-yaml": "^4.3.2",
-    "sharp": "^0.34.5"
+    "sharp": "^0.35.5"
+  },
+  "overrides": {
+    "sharp": "$sharp"
   }
 }
