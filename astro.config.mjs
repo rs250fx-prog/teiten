@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
+import { unified } from '@astrojs/markdown-remark';
 import fs from 'node:fs';
 import path from 'node:path';
 import { IS_PUBLIC, SITE_URL } from './src/config.ts';
@@ -51,12 +52,16 @@ export default defineConfig({
         }),
       ]
     : [],
+  // Astro 7 の既定の Markdown 処理（Sätteri）は remark/rehype プラグインを通さないため、
+  // 従来の unified の処理系を明示して使う
   markdown: {
-    // 日本語で閉じられなかった強調記号を救済してから、フロー変換にかける。
-    // 順序が逆だと、残ったアスタリスクがフロー表示へそのまま出る
-    // 日次レポートの節の頭に図を足す（frontmatter の infographic と過去の号の snapshot から）
-    remarkPlugins: [remarkStrongFix, remarkFlow, remarkFigures],
-    // 本文の外部リンクに target と rel を一括付与する
-    rehypePlugins: [rehypeExternalLinks],
+    processor: unified({
+      // 日本語で閉じられなかった強調記号を救済してから、フロー変換にかける。
+      // 順序が逆だと、残ったアスタリスクがフロー表示へそのまま出る
+      // 日次レポートの節の頭に図を足す（frontmatter の infographic と過去の号の snapshot から）
+      remarkPlugins: [remarkStrongFix, remarkFlow, remarkFigures],
+      // 本文の外部リンクに target と rel を一括付与する
+      rehypePlugins: [rehypeExternalLinks],
+    }),
   },
 });
