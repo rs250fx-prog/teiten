@@ -1,16 +1,21 @@
 /**
- * note 用の図解（縦長インフォグラフィック、幅1080）を書き出す。日次のみ。
+ * note 用の図解（縦長インフォグラフィック、幅1080）を書き出す。日次と週次。
  *
  *     node tools/make-infographic.mjs 2026-10-15                 → note/info_20261015.png
+ *     node tools/make-infographic.mjs 2026-w43                   → note/info_2026w43.png（週次）
  *     node tools/make-infographic.mjs 2026-10-15 --src x.md      原稿の場所を指定
  *     node tools/make-infographic.mjs 2026-10-15 --out /tmp/i.png
  *
- * 入力は日次レポートの frontmatter。数値は snapshot と infographic.quotes から取り、
+ * 入力は日次レポート（週次）の frontmatter。数値は snapshot（週次は performance）と
+ * infographic.quotes から取り、
  * 各ブロックの項目は `ref`（ラベルの部分一致）でそこを引く。**同じ数字を2か所に書かない。**
  * 文章（見出し・リード・ノード名・注目点）だけを infographic に書く。
  *
  * 書き方は .claude/skills/teiten-report/SKILL.md の「8-C」。
- * 公開URLは https://teiten.trade/info/<YYYY-MM-DD>.png（tools/copy-thumbs.mjs が写す）。
+ * 公開URLは https://teiten.trade/info/<YYYY-MM-DD>.png、週次は /info/<YYYY-wNN>.png
+ * （tools/copy-thumbs.mjs が写す）。
+ *
+ * 週次は見出しの言葉（今週の資金フロー・前週比・来週）が変わるだけで、ブロックの組み方は同じ。
  *
  * 文字は make-thumb.mjs と同じく、フォントファイルから輪郭を取り出してパスで描く
  * （クラウドの定期実行には日本語フォントが無い）。背景画像は使わず、全部ここで組む。
@@ -224,14 +229,19 @@ function fail(msg) {
   process.exit(1);
 }
 const args = process.argv.slice(2);
-const id = args.find((a) => /^\d{4}-\d{2}-\d{2}$/.test(a));
-if (!id) fail('日付を指定してください（例: node tools/make-infographic.mjs 2026-10-15）');
+const id = args.find((a) => /^\d{4}-\d{2}-\d{2}$/.test(a) || /^\d{4}-w\d{2}$/.test(a));
+if (!id) fail('日付か週を指定してください（例: node tools/make-infographic.mjs 2026-10-15 / 2026-w43）');
+const WEEKLY = /^\d{4}-w\d{2}$/.test(id);
+/** 日次と週次で変わる言葉 */
+const WORD = WEEKLY
+  ? { brand: 'TEITEN｜マネーフロー・ウィークリー', flow: '今週の資金フロー', table: '週末の終値・清算値ベース。括弧内は前週比', bias: 'Market Bias（来週）', watch: '来週の注目ポイント' }
+  : { brand: 'TEITEN｜マネーフロー・デイリー', flow: '今日の資金フロー', table: '終値・清算値ベース。括弧内は前日比', bias: 'Market Bias（短期）', watch: '今後の注目ポイント' };
 const opt = (k) => {
   const i = args.indexOf(k);
   return i >= 0 ? args[i + 1] : undefined;
 };
 const out = opt('--out') ?? join(ROOT, 'note', `info_${id.replaceAll('-', '')}.png`);
-const src = opt('--src') ?? join(ROOT, 'src/content/reports', `${id}.md`);
+const src = opt('--src') ?? join(ROOT, WEEKLY ? 'src/content/weekly' : 'src/content/reports', `${id}.md`);
 
 let raw;
 try {
@@ -245,14 +255,14 @@ const data = yaml.load(fm[1]);
 const ig = data.infographic;
 if (!ig) fail('frontmatter に infographic がありません');
 
-/** 数値の出どころ。snapshot が先、infographic.quotes が後 */
-const QUOTES = [...(data.snapshot ?? []), ...(ig.quotes ?? [])];
+/** 数値の出どころ。snapshot（週次は performance）が先、infographic.quotes が後 */
+const QUOTES = [...((WEEKLY ? data.performance : data.snapshot) ?? []), ...(ig.quotes ?? [])];
 /** ref（ラベルの部分一致）で数値を引き、項目に足す。ref が無ければそのまま */
 function resolve(item) {
   if (!item?.ref) return item;
   const q = QUOTES.find((s) => s.label.includes(item.ref));
   if (!q) {
-    problems.push(`ref「${item.ref}」に当たる行が snapshot / infographic.quotes にありません`);
+    problems.push(`ref「${item.ref}」に当たる行が ${WEEKLY ? 'performance' : 'snapshot'} / infographic.quotes にありません`);
     return item;
   }
   return { label: q.label, ...q, ...item };
@@ -264,8 +274,6 @@ let y = 0;
 
 // ヘッダー
 {
-  const d = new Date(`${id}T00:00:00Z`);
-  const wd = '日月火水木金土'[d.getUTCDay()];
   const H = 236;
   parts.push(
     `<defs><linearGradient id="hd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dce9f8"/><stop offset="1" stop-color="${C.bg}"/></linearGradient></defs>`,
@@ -278,12 +286,14 @@ let y = 0;
   bx.forEach((x0, i) => (sky += `<rect x="${x0}" y="${H - bh[i]}" width="${i % 2 ? 48 : 58}" height="${bh[i]}" fill="#c9daee" opacity=".55"/>`));
   parts.push(sky);
 
-  const dateLabel = `${id.replaceAll('-', '.')}（${wd}）`;
+  const dateLabel = WEEKLY
+    ? `第${data.week}週 ${String(data.start).replaceAll('-', '.')}〜${String(data.end).slice(5).replaceAll('-', '.')}`
+    : `${id.replaceAll('-', '.')}（${'日月火水木金土'[new Date(`${id}T00:00:00Z`).getUTCDay()]}）`;
   const dw = measure(dateLabel, 30, 900) + 40;
   parts.push(
     rect(M, 30, dw, 52, { r: 10, fill: C.down, stroke: null }),
     text(dateLabel, { x: M + 20, y: 67, size: 30, w: 900, fill: '#fff' }),
-    text('TEITEN｜マネーフロー・デイリー', { x: W - M, y: 64, size: 20, w: 700, fill: C.navy, anchor: 'end' }),
+    text(WORD.brand, { x: W - M, y: 64, size: 20, w: 700, fill: C.navy, anchor: 'end' }),
     text(data.thumb?.title ?? '', {
       x: W / 2, y: 160, size: 70, w: 900, fill: C.navy, anchor: 'middle', maxWidth: IN, name: '大タイトル（thumb.title）',
     }),
@@ -302,7 +312,7 @@ let y = 0;
   const lw = 210;
   parts.push(
     rect(M + 14, y + 14, lw, H - 28, { r: 10, fill: C.navy, stroke: null }),
-    text('今日の資金フロー', { x: M + 14 + lw / 2, y: y + H / 2 + 9, size: 25, w: 900, fill: '#fff', anchor: 'middle', maxWidth: lw - 24 }),
+    text(WORD.flow, { x: M + 14 + lw / 2, y: y + H / 2 + 9, size: 25, w: 900, fill: '#fff', anchor: 'middle', maxWidth: lw - 24 }),
   );
   const n = flow.length;
   const gap = 40;
@@ -571,7 +581,7 @@ if (ig.gold) {
 // 5 主要マーケットの数字
 {
   const rows = (ig.table ?? QUOTES.map((q) => ({ ref: q.label }))).map(resolve);
-  section(5, '主要マーケットの数字', ig.table_note ?? '終値・清算値ベース。括弧内は前日比', (top, P) => {
+  section(5, '主要マーケットの数字', ig.table_note ?? WORD.table, (top, P) => {
     const half = Math.ceil(rows.length / 2);
     const colW = (IN - 40 - 20) / 2;
     const rh = 58;
@@ -627,7 +637,7 @@ if (ig.gold) {
   const wh = 98;
   const bodyH = Math.max(watch.length * wh + 8, 300);
   const H = 58 + bodyH + 20;
-  parts.push(rect(M, top, lw, H), rect(M + lw + gap, top, rw, H), head(M, lw, seq + 1, 'Market Bias（短期）'), head(M + lw + gap, rw, seq + 2, '今後の注目ポイント'));
+  parts.push(rect(M, top, lw, H), rect(M + lw + gap, top, rw, H), head(M, lw, seq + 1, WORD.bias), head(M + lw + gap, rw, seq + 2, WORD.watch));
 
   const bc = dirColor(b.dir ?? 'down');
   parts.push(rect(M + 20, top + 78, lw - 40, 92, { r: 12, fill: C.tint[b.dir ?? 'down'], stroke: null }),

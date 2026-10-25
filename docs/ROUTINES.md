@@ -212,7 +212,10 @@ Claude の cloud routines に登録しているプロンプトの原本。**ル�
    **エラーが出たら文言を短くして、通るまでやり直す。**`thumb` に数値の欄は無い（performance から取る）。
    小見出しは `bias`（来週のスタンス）を1行に詰める。`schedule` に無い指標やイベントを書かない。
    手順7で npm が失敗していて書き出せない場合は、`thumb` の文言だけ書いて次へ進み、その旨を結果に書く
-8. commit して `main` に push する。`note/<YYYY-wNN>.md` と `note/thumb_<YYYYwNN>.png` も add に含める
+7-C. frontmatter の `infographic` に図解の文言を書き、`node tools/make-infographic.mjs <YYYY-wNN>` で
+   note 用の図解を書き出す（SKILL.md のステップ8-C）。**数値は `ref` で performance から引き、performance に無い数字だけを
+   `infographic.quotes` に書く。**`watch` は `schedule` にある予定だけ。エラーが出たら文言を詰めて、通るまでやり直す
+8. commit して `main` に push する。`note/<YYYY-wNN>.md`、`note/thumb_<YYYYwNN>.png`、`note/info_<YYYYwNN>.png` も add に含める
 
 ## 書き方
 
@@ -249,6 +252,7 @@ Claude の cloud routines に登録しているプロンプトの原本。**ル�
 - 取得できなかった指標があれば、その一覧
 - note 用の簡易版（`note/<YYYY-wNN>.md`）を書いたか
 - note 用サムネイル（`note/thumb_<YYYYwNN>.png`）を書き出せたか。「注意」が出た行があればその内容
+- note 用の図解（`note/info_<YYYYwNN>.png`）を書き出せたか。公開後は `https://teiten.trade/info/<YYYY-wNN>.png`
 - push したコミットのハッシュ
 
 **push に失敗した場合は、作成した記事の全文（frontmatter を含む）を報告に
@@ -279,6 +283,7 @@ Claude の cloud routines に登録しているプロンプトの原本。**ル�
 
 | 日付 | 内容 |
 |---|---|
+| 2026-10-25 | 週次の手順に 7-C（note 用の図解 `tools/make-infographic.mjs <YYYY-wNN>`）を追加し、完了時の報告に足した。**定期実行の側のプロンプトにも同じ手順を足すこと**（第43週の時点で、ルーティンのプロンプトには 7-A も入っていなかった） |
 | 2026-10-15 | 日次の手順に 7-C（note 用の図解 `tools/make-infographic.mjs`）を追加し、完了時の報告に図解の結果とURL（`/info/<YYYY-MM-DD>.png`）を足した。ChatGPT で手作りしていた図解の置き換え。登録済みのルーティン（`trig_01YXGbBvr9ALLagKshTTcikj`）にも同じ文面を反映済み |
 | 2026-10-14 | 日次の手順2・3と公開の判定を直した。**`fetch-indicators.py` が Yahoo Finance からドル指数・日経225・日経VI・原油・Nasdaq・ダウの日足終値も出すようになり、その値は報道と食い違っても採る。**10/13・10/14 号はドル指数が報道の寄せ集めで割れて未確認になり、10/14 号は自動公開が止まった。**登録済みのルーティンの文面にも同じ変更を反映すること** |
 | 2026-10-06 | 公開の判定の「出所が食い違った」を、**同じ定義の値が割れて、どれかを載せた場合**に限った。初日の10/6号は、金の現物終値が決まらないこと（現物の日中値と先物の清算値が違う）を理由に下書きで止まり、人が 8:38 に公開した。金の終値は出所で割れるのが常で、「未確認」と書けているなら誤りではない。ルーティンにも反映済み |

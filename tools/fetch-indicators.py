@@ -138,10 +138,10 @@ def main() -> int:
     print("\n金（XAU/USD 現物）は USAGOLD の価格履歴から取る（tools/fetch-gold.py）：")
     run_sibling("fetch-gold.py")
 
-    print("\nDXY・日経225・日経VI・原油・米株価指数の日足終値（tools/fetch-market.py）：")
+    print("\nDXY・日経225・日経VI・原油・米株価指数の日足終値と、ドル円・ユーロドルのNY17時の値（tools/fetch-market.py）：")
     run_sibling("fetch-market.py")
 
-    print("\nBTC・日本10年債・為替はここに無い。取得元は docs/SOURCES.md を参照。")
+    print("\nBTC・日本10年債はここに無い。取得元は docs/SOURCES.md を参照。")
     return 0
 
 

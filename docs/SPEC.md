@@ -109,7 +109,7 @@ tools/
 ├── check-report.py       公開前の検査（日次・週次の両方）
 ├── make-og.py            OG画像の生成
 ├── make-thumb.mjs        note用サムネイルの生成（部品は tools/thumb/）
-├── make-infographic.mjs  note用の図解（縦長）の生成。日次のみ。フォントは tools/thumb/fonts/ を共用
+├── make-infographic.mjs  note用の図解（縦長）の生成。日次・週次。フォントは tools/thumb/fonts/ を共用
 ├── copy-thumbs.mjs      ビルド後にサムネイルと図解を dist/thumb/・dist/info/ へ写す
 └── make-logo.py          ロゴ画像の生成
 .claude/skills/
@@ -184,6 +184,7 @@ docs/SPEC.md              本書
 | `levels` | Level[] | テクニカル・レベル（週末時点）。日次と同じ形式 |
 | `scenarios` | Scenario[] | 来週のシナリオ。`{kind, trigger, chain, target}`、`kind` は bull / base / bear。**週次の看板要素**。散文にすると3案の比較ができず、翌週の検証もできない |
 | `bias` | string | 来週のスタンス。記事の結論として独立したブロックに出る |
+| `thumb` / `infographic` | object? | note 用のサムネイルと図解の文言。日次と同じ形で、数値は `performance` から取る。サイトには出ない |
 
 詳細ページは `start`〜`end` の期間に該当する日次レポートを自動で逆引きして並べる。
 
@@ -475,7 +476,7 @@ https://teiten.trade/thumb/2026-w40.png     週次
 
 下書きの号の画像もこのURLで出る（見出しの文言が公開前に見える）。`/thumb/` は noindex。
 
-note の本文に貼る縦長の図解（日次のみ。`note/info_*.png`）も同じ仕組みで出る。
+note の本文に貼る縦長の図解（日次・週次。`note/info_*.png`）も同じ仕組みで出る（`/info/2026-10-15.png`、`/info/2026-w43.png`）。
 
 ```
 https://teiten.trade/info/2026-10-15.png    日次
@@ -547,6 +548,8 @@ python tools/make-og.py
 
 | 日付 | 内容 |
 |---|---|
+| 2026-10-25 | **週次にも note 用の図解を出せるようにした。**`node tools/make-infographic.mjs YYYY-wNN` が `note/info_YYYYwNN.png` を出し、`copy-thumbs.mjs` が `dist/info/YYYY-wNN.png` へ写す。週次 frontmatter に `infographic` を足し、`ref` は `performance` を引く（変化は前週比）。見出しの言葉だけ週次用に変え、ブロックの組み方は日次と同じ。シナリオの3案は note と同じく図解にも入れない。第43週から |
+| 2026-10-25 | **ドル円・ユーロドルを Yahoo Finance の1時間足から取るようにした（`tools/fetch-market.py`）。**報道からの取得では時刻の違う値が割れ、ほぼ毎号「未確認」だった。その日のニューヨーク17時より前の最後の1時間足の終値を終値とする。詳細は `docs/SOURCES.md` |
 | 2026-10-23 | **各号に編集者の署名「編集：村瀬 一郎」を入れ、構造化データの `author` を組織から Person に変えた。**金融情報は YMYL 領域で、誰が責任を持って出しているかが検索評価と読者の信頼に直結するため。肩書は「執筆」ではなく「編集」。原稿は定期実行が作り、人が確認して公開する運用なので、そちらが実態に近い。署名は `/about/#editor` に飛び、編集者の節を新設した。発行元（publisher）は従来どおり組織 |
 | 2026-10-23 | **日次レポートの本文に図を入れた（`src/remark-figures.mjs`、§7「本文の図」）。**文字だけの本文は読み疲れて note に戻ってしまう、という指摘による。note 用の図解と同じ `infographic` の文言と、過去の号の `snapshot`（定点観測の推移）だけを材料にし、**新しく取りに行く値も、定期実行が追加で書く項目も無い。**図解のPNGを切り出して貼る案もあったが、サイトの配色（暖色のオフホワイト・ダークモード）に合わず、文字が画像になるため採らなかった。見た目は note 用（`make-infographic.mjs`）とサイト用の2か所に分かれるが、文言と数値の出どころは1つ |
 | 2026-10-22 | **`/admin` の記事一覧が「Too many subrequests by single Worker invocation」で読み込めなくなったのを直した。**Worker は1回の実行で外部へ出せる回数に上限があり（無料枠は50回）、一覧は GitHub の REST API を**記事1件につき1回**呼んでいた。そこへ、リポジトリが `financial-report` から `teiten` に改名されていて、旧名への呼び出しが毎回 301 でリダイレクトされ、**リダイレクトも1回に数えられる**ため実質2倍になった。記事は28本（上限は40）で、(2＋28)×2＝60回で超えた。**1本ずつ取る作りは、記事が増えるほど上限に近づく**ので、GitHub の GraphQL で日次・週次の2ディレクトリの本文を**1回**でまとめて取る形に変え（`functions/admin/api/reports.ts`）、回数が記事数に依らないようにした。あわせて参照先の既定を `rs250fx-prog/teiten` に更新（`functions/admin/_lib.ts`）。公開・下書き戻し（`publish.ts`）は2回しか呼ばないので REST のまま。`GITHUB_REPO` を Pages に登録している場合は旧名を入れない |

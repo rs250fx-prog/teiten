@@ -248,6 +248,12 @@ const weekly = defineCollection({
       })
       .optional(),
 
+    /**
+     * note 用の図解の文言。日次の infographic と同じ形で、数値は performance から ref で引く。
+     * サイトには出ない。
+     */
+    infographic: z.record(z.string(), z.unknown()).optional(),
+
     /** 今週の要点。日次の points と同じ扱い */
     points: z.array(z.string()).default([]),
 

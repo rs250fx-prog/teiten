@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""ドル指数・日経225・日経VI・原油・米株価指数の日足終値を取り、記事に書ける形で出す。
+"""ドル指数・日経225・日経VI・原油・米株価指数の日足終値と、ドル円・ユーロドルの
+ニューヨーク17時の値を取り、記事に書ける形で出す。
 
     python tools/fetch-market.py
 
@@ -43,12 +44,20 @@ Yahoo は取引所のデータを中継する集約サイトで、一次の出�
 
 日付は取引所の時間帯で数える。
 
-## 為替（ドル円・ユーロドル）は取らない
+## 為替（ドル円・ユーロドル）は1時間足から「ニューヨーク17時」の値を取る
 
-Yahoo の為替の日足は、始値と終値がほぼ同じで、**その日の始まり（ロンドン0時）の
+Yahoo の為替の**日足**は、始値と終値がほぼ同じで、**その日の始まり（ロンドン0時）の
 時点の値**になっている。10/13 の足の 1.1160 は 10/12 のNYの引け（報道 1.1158）で、
-10/13 の引け（報道 1.1202）は翌日の足の始値に入っていた。日付が1日ずれた値を
-「その日の終値」として出すことになるので、系列に入れない。為替は報道から取る。
+10/13 の引け（報道 1.1202）は翌日の足の始値に入っていた。日付が1日ずれるので日足は使わない。
+
+当初は為替を報道から取っていたが、報道は時刻の違う値を「終値」と書くため割れ、
+ほぼ毎号「未確認」になった（第43週は金曜のドル円が 156.35 と 156.87 で割れた）。
+
+為替は24時間動き、取引所の引けが無い。慣行の区切りは**ニューヨーク17時**（週末は金曜
+17時で閉まる）なので、**1時間足のうち、その日のニューヨーク17時より前の最後の足の終値**を
+その日の終値とする（実質16:59の値）。10/16 は 157.99 で、報道の 157.97〜157.99 と合った。
+10/23 の 156.81 は、Yahoo の最終取引（金曜16:59:50）の値と一致する。
+ニューヨーク17時をまだ過ぎていない日は「読み取り」として時刻つきで出す。
 
 ## 取れなかったら
 
@@ -78,19 +87,27 @@ SERIES = [
     ("^VIX", "VIX", "日足終値。FRED VIXCLS の裏取り", 2),
 ]
 
+# 為替。(記号, 記事での呼び名, 小数の桁)。1時間足からニューヨーク17時の値を取る
+FX = [
+    ("JPY=X", "ドル円（USD/JPY）", 2),
+    ("EURUSD=X", "ユーロドル（EUR/USD）", 4),
+]
+
 HOSTS = ("query1.finance.yahoo.com", "query2.finance.yahoo.com")
 PATH = "/v8/finance/chart/{}?range=10d&interval=1d"
+PATH_FX = "/v8/finance/chart/{}?range=10d&interval=1h"
+NY = ZoneInfo("America/New_York")
 # Python 既定の UA だと 429 が返る（2026-10-14 に確認）
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36"
 JST = ZoneInfo("Asia/Tokyo")
 TZ_NAMES = {"America/New_York": "ニューヨーク時間", "America/Chicago": "シカゴ時間", "Asia/Tokyo": "日本時間"}
 
 
-def chart(symbol: str) -> dict:
+def chart(symbol: str, path: str = PATH) -> dict:
     sym = urllib.parse.quote(symbol, safe="")
     last = None
     for host in HOSTS:
-        req = urllib.request.Request(f"https://{host}{PATH.format(sym)}", headers={"User-Agent": UA})
+        req = urllib.request.Request(f"https://{host}{path.format(sym)}", headers={"User-Agent": UA})
         try:
             with urllib.request.urlopen(req, timeout=15) as r:
                 payload = json.loads(r.read().decode("utf-8"))
@@ -149,6 +166,34 @@ def closes(res: dict, now: float):
     return out, live
 
 
+def fx_closes(res: dict, now: float):
+    """(確定した日 [(日付, 値)] 古い順, 読み取り (時刻, 値) か None) を返す。
+
+    日付はニューヨークの暦日。その日の17時より前の最後の1時間足の終値を、その日の終値とする。
+    17時をまだ過ぎていない日は確定させず、読み取りとして返す。
+    """
+    stamps = res.get("timestamp") or []
+    values = res["indicators"]["quote"][0].get("close") or []
+    last = {}
+    for t, v in zip(stamps, values):
+        if v is None:
+            continue
+        dt = datetime.fromtimestamp(t, NY)
+        if dt.weekday() >= 5 or dt.hour >= 17:
+            continue
+        last[dt.date()] = (dt, v)   # 古い順に来るので、最後に残るのがその日の17時前の最後の足
+    out, live = [], None
+    for d in sorted(last):
+        cutoff = datetime(d.year, d.month, d.day, 17, tzinfo=NY).timestamp()
+        if now >= cutoff:
+            out.append((d, last[d][1]))
+        else:
+            meta = res["meta"]
+            rmt, price = meta.get("regularMarketTime"), meta.get("regularMarketPrice")
+            live = (datetime.fromtimestamp(rmt, NY), price) if rmt and price else (last[d][0], last[d][1])
+    return out, live
+
+
 def business_days_between(a: date, b: date) -> int:
     n, c = 0, a
     while c < b:
@@ -196,6 +241,29 @@ def report() -> int:
             print(f"      読み取り：{fmt(lv, digits)}（{lt.month}/{lt.day} {lt:%H:%M} {TZ_NAMES.get(str(lt.tzinfo), str(lt.tzinfo))}。"
                   f"取引中の値で、終値・清算値ではない）")
         print(f"      {definition}")
+
+    for symbol, name, digits in FX:
+        try:
+            rows, live = fx_closes(chart(symbol, PATH_FX), now)
+        except Exception as e:
+            print(f"NG  {name}（{symbol}）取得できません: {e}")
+            failed.append(name)
+            continue
+        if not rows:
+            print(f"NG  {name}（{symbol}）確定した値がありません")
+            failed.append(name)
+            continue
+        d, v = rows[-1]
+        mark = "  " if business_days_between(d, today) <= 2 else "△ "
+        chg = ""
+        if len(rows) >= 2:
+            pd_, pv = rows[-2]
+            chg = f"、{pd_.month}/{pd_.day}比 {pct(v, pv)}"
+        print(f"{mark}{name}：{fmt(v, digits)}（{d.month}/{d.day} ニューヨーク17時{chg}、Yahoo {symbol} 1時間足）")
+        if live:
+            lt, lv = live
+            print(f"      読み取り：{fmt(lv, digits)}（{lt.month}/{lt.day} {lt:%H:%M} ニューヨーク時間。17時前の値で、終値ではない）")
+        print("      その日のニューヨーク17時より前の最後の1時間足の終値。週次の前週比は金曜どうしで出す")
 
     print("\n本文にはこの形式で、「◯/◯終値」と比較した日付を添えて書く。")
     print("「読み取り」は取引中の値。終値として書かない。書くなら時刻を添える（金の USAGOLD 読み取りと同じ扱い）。")

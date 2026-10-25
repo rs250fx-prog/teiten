@@ -3,7 +3,8 @@
  *
  *     note/thumb_20261005.png → dist/thumb/2026-10-05.png
  *     note/thumb_2026w40.png  → dist/thumb/2026-w40.png
- *     note/info_20261015.png  → dist/info/2026-10-15.png（図解。日次のみ）
+ *     note/info_20261015.png  → dist/info/2026-10-15.png（図解）
+ *     note/info_2026w43.png   → dist/info/2026-w43.png（週次の図解）
  *
  * 画像はクラウドの定期実行が作ってリポジトリに push する。リポジトリは非公開なので、
  * そのままでは手元のPCで pull しないと取り出せない。スマホからでも note に貼れるよう、
@@ -33,8 +34,10 @@ for (const f of readdirSync(SRC)) {
   const daily = f.match(/^thumb_(\d{4})(\d{2})(\d{2})\.png$/);
   const weekly = f.match(/^thumb_(\d{4})w(\d{2})\.png$/);
   const info = f.match(/^info_(\d{4})(\d{2})(\d{2})\.png$/);
-  if (info) {
-    copyFileSync(join(SRC, f), join(OUT_INFO, `${info[1]}-${info[2]}-${info[3]}.png`));
+  const infoWeekly = f.match(/^info_(\d{4})w(\d{2})\.png$/);
+  if (info || infoWeekly) {
+    const to = info ? `${info[1]}-${info[2]}-${info[3]}.png` : `${infoWeekly[1]}-w${infoWeekly[2]}.png`;
+    copyFileSync(join(SRC, f), join(OUT_INFO, to));
     m += 1;
     continue;
   }

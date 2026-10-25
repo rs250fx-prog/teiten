@@ -88,7 +88,7 @@ python tools/fetch-indicators.py
 
 この媒体は「数値を創作しない」を最上位の規則にしている。**要約の出力は、人が書いた記事と同じく裏を取る対象**であって、一次データではない。
 
-スクリプトに無いもの（ドル円・ユーロドル・BTC の ETF 資金フロー・Fed 高官発言・材料）と、
+スクリプトに無いもの（BTC の ETF 資金フロー・Fed 高官発言・材料）と、
 スクリプトが取れなかった指標はウェブ検索で補う。`money-flow-report` スキルの `references/search-strategy.md` に従う。最低限、次を押さえる。
 
 **必ず取る（snapshot の8項目）**
@@ -303,7 +303,7 @@ node tools/make-thumb.mjs YYYY-MM-DD   # → note/thumb_YYYYMMDD.png（1280×670
 frontmatter の `bias`（来週のスタンス）を1行に詰めたものにする。
 **来週の予定に無い指標やイベントを書かない**（`schedule` にあるものだけ）。
 
-### 8-C. note用の図解を書き出す（日次のみ）
+### 8-C. note用の図解を書き出す（日次・週次）
 
 note の本文に貼る縦長の図解（幅1080、高さは内容しだいで約3,100）。frontmatter の
 `infographic` に文言を書き、スクリプトで画像にする。
@@ -337,6 +337,11 @@ icon は gold / bank / dollar / chip / bond / oil / calendar / chart。ブロッ
 - **人物の発言・似顔絵を入れない。**原稿に無い要素を図解だけに足さない
 - 画像は `note/info_YYYYMMDD.png`。原稿と一緒にコミットする。push 後
   `https://teiten.trade/info/YYYY-MM-DD.png` で開ける
+
+**週次も同じスクリプトで出す。**`node tools/make-infographic.mjs YYYY-wNN` → `note/info_YYYYwNN.png`
+（`https://teiten.trade/info/YYYY-wNN.png`）。`ref` は `snapshot` の代わりに `performance` を引き、変化は前週比になる。
+見出しの言葉が「今週の資金フロー」「Market Bias（来週）」「来週の注目ポイント」に変わるほかは日次と同じ。
+`watch` には `schedule` にある予定だけを書く。シナリオの3案は図解にも入れない（サイトに残す）。
 
 ## やってはいけないこと
 
@@ -386,6 +391,7 @@ python tools/check-report.py 2026-w38
 | `scenarios` | **来週のシナリオ。週次の看板要素。**bull / base / bear の3案を必須とし、`trigger`（発動条件）・`chain`（因果連鎖）・`target`（価格目処）を同じ粒度で書く |
 | `bias` | 来週のスタンス。記事の結論として独立したブロックに出る |
 | `thumb` | note 用サムネイルの文言。日次と同じ形（「8-B. note用のサムネイルを書き出す」）。`node tools/make-thumb.mjs YYYY-wNN` で `note/thumb_YYYYwNN.png` が出る |
+| `infographic` | note 用の図解の文言。日次と同じ形（「8-C」）。`node tools/make-infographic.mjs YYYY-wNN` で `note/info_YYYYwNN.png` が出る |
 
 `performance` は8〜9件を目安に、金・原油・米株・日経・ドル指数・ドル円・米金利・VIX をひととおり。
 
