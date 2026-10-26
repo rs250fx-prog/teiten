@@ -23,6 +23,8 @@ const FRED = [
   { name: '米2年債利回り', id: 'DGS2', lag: '2営業日' },
   { name: 'S&P 500', id: 'SP500', lag: '1営業日' },
   { name: '期待インフレ率（10年BEI）', id: 'T10YIE', lag: '2営業日' },
+  { name: '米ハイイールド債スプレッド（ICE BofA OAS）', id: 'BAMLH0A0HYM2', lag: '1〜2営業日' },
+  { name: '実効FF金利（FOMC の織り込みの起点）', id: 'EFFR', lag: '1営業日' },
 ];
 
 const OTHERS = [
@@ -31,10 +33,20 @@ const OTHERS = [
   { name: 'ドル指数 DXY', src: 'Yahoo Finance（日足 DX-Y.NYB）', href: 'https://finance.yahoo.com/quote/DX-Y.NYB/', note: 'ICEの指数のため公的データベースに無い。取引所のデータを中継する集約サイトで一次の出所ではないが、報道ごとに割れる値を寄せ集めるより、1つの系列に固定することを取った' },
   { name: '日経225', src: 'Yahoo Finance（日足 ^N225）', href: 'https://finance.yahoo.com/quote/%5EN225/', note: '算出元の日経平均プロフィルと照合できるときは照合する' },
   { name: '日本10年債利回り', src: '財務省 国債金利情報', href: 'https://www.mof.go.jp/jgbs/reference/interest_rate/index.htm', note: '公的な確定値' },
-  { name: 'BTC', src: 'CoinGecko（CoinDeskで突き合わせ）', href: 'https://www.coingecko.com/en/coins/bitcoin', note: '24時間取引で終値が決まらないため、UTC 0:00（日本時間9:00）の値に固定している' },
+  { name: '米2年・10年債利回り、実質金利（週次）', src: '米財務省 Daily Treasury Par Yield Curve / Real Yield Curve', href: 'https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve', note: 'FRED の DGS2・DGS10・DFII10 の原本。FRED より1営業日早く出るため、週次は金曜分までこちらで取る。2-10年スプレッドはこの2本の差' },
+  { name: 'BTC', src: 'CoinGecko（CoinDeskで突き合わせ）', href: 'https://www.coingecko.com/en/coins/bitcoin', note: '24時間取引で終値が決まらないため、UTC 0:00（日本時間9:00）の値に固定している。週次は金曜の UTC 0:00 どうしで比べる' },
   { name: '日経VI', src: 'Yahoo Finance（日足 ^NKVI.OS）', href: 'https://finance.yahoo.com/quote/%5ENKVI.OS/', note: '算出元の日経平均プロフィルと照合できるときは照合する' },
   { name: 'Nasdaq総合・ダウ平均', src: 'Yahoo Finance（日足 ^IXIC / ^DJI）', href: '', note: 'S&P 500 と VIX は FRED が原本で、同じ系列から1日早く裏取りする' },
-  { name: 'ドル円・ユーロドル', src: '当日の報道（複数社で突き合わせ）', href: '', note: '集約サイトの為替の日足は、前日の引け値が入って1日ずれるため使わない' },
+  { name: 'ドル円・ユーロドル', src: 'Yahoo Finance（1時間足 JPY=X / EURUSD=X）', href: 'https://finance.yahoo.com/quote/JPY%3DX/', note: 'その日のニューヨーク17時より前の最後の1時間足の終値。為替に取引所の引けは無く、慣行の区切りがニューヨーク17時のため。日足は前日の引け値が入って1日ずれるので使わない' },
+  { name: '銀・プラチナ・銅', src: 'Yahoo Finance（COMEX / NYMEX 期近先物 SI=F / PL=F / HG=F）', href: 'https://finance.yahoo.com/quote/SI%3DF/', note: '清算値。現物の値決め（LBMA）は自動で取れないため、先物で定点化する。限月が替わった週の前週比は、同じ限月どうしで出す。銅の単位はドル/ポンド' },
+  { name: '円建て金（XAU/JPY）', src: '算出：金（USAGOLD）× ドル円（ニューヨーク17時）', href: '', note: '1トロイオンスあたりの円。国内の店頭小売価格（田中貴金属など。1グラムあたり、税込）とは単位と定義が違い、参考として本文で触れるにとどめる' },
+  { name: 'レシオ（金/銀・金/原油・金/銅）', src: '算出：COMEX 金先物（GC=F）÷ 銀・WTI原油・銅の期近先物', href: '', note: '比をとる両側を同じ種類の値（先物の清算値）にそろえる。各週の最後の取引日の値。限月が替わる週は比が限月をまたぐ' },
+  { name: 'MOVE指数', src: 'Yahoo Finance（日足 ^MOVE）', href: 'https://finance.yahoo.com/quote/%5EMOVE/', note: 'ICE BofA の米国債のボラティリティ指数。VIX（株）・日経VI（日本株）と並べ、どの市場が震源かを見る' },
+  { name: 'CFTC 建玉（COT）', src: 'CFTC Commitments of Traders（Disaggregated / Traders in Financial Futures）', href: 'https://publicreporting.cftc.gov/', note: '火曜時点の建玉を金曜に公表。金・銀・原油はマネージド・マネー、円はレバレッジド・ファンドの買い−売り' },
+  { name: 'FOMC の織り込み', src: '算出：CBOT FF金利先物（Yahoo Finance）と FRED EFFR', href: 'https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html', note: 'CME FedWatch と同じ考え方で、会合後の政策金利の見込みを先物から逆算する。FedWatch の数値そのものではない（FedWatch のページは自動で読めない）' },
+  { name: 'BTC現物ETFの資金フロー', src: 'Farside Investors', href: 'https://farside.co.uk/btc/', note: '米国の現物ETFの日次ネットフローの合計（百万ドル）。集計前の日は「未集計」とする' },
+  { name: '金ETF・銀ETFの残高', src: 'World Gold Council（週次）、SPDR Gold Shares（GLD）、iShares（IAU / SLV）の公式ページ', href: 'https://www.gold.org/goldhub/data/gold-etfs-holdings-and-flows', note: '自動で取れないため、公式ページか複数の報道で確かめた値だけを載せる。確かめられない週は「未確認」' },
+  { name: 'LBMA の値決め（銀・プラチナ）', src: 'LBMA', href: 'https://www.lbma.org.uk/prices-and-data/precious-metal-prices', note: '現物の確定値の原本。自動で取れないため定点化には使わず、本文で現物に触れるときの照合先とする' },
 ];
 ---
 

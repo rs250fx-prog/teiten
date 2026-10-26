@@ -166,11 +166,52 @@ const weekly = defineCollection({
     performance: z
       .array(
         z.object({
+          /**
+           * `tools/fetch-weekly.py` の銘柄キー（xau / xag / us2y …）。付けた行は
+           * `check-report.py` が src/data/weekly/<slug>.json の値と突き合わせる。W43 までの行には無い
+           */
+          key: z.string().optional(),
+          /** 表示のグループ。無ければ label から推定する（src/lib/weekly.ts） */
+          group: z
+            .enum(['metals', 'rates', 'fx', 'commodities', 'equities', 'crypto', 'vol', 'credit'])
+            .optional(),
           label: z.string(),
+          /** status が「未確認」なら空にする。表示側が「未確認」と出す */
           value: z.string(),
           change: z.string().default(''),
           dir: direction,
+          /**
+           * 確定 … 確定した終値・清算値・公表値（既定）
+           * 読み取り … 取引中や集計途中の値。終値ではない
+           * 未確認 … 取れなかった。値は空
+           */
+          status: z.enum(['確定', '読み取り', '未確認']).default('確定'),
           /** 一言の解説。「4カ月ぶりに$100の大台突破」など */
+          note: z.string().default(''),
+        }),
+      )
+      .default([]),
+
+    /**
+     * 週のレシオ（金/銀・金/原油・金/銅）への一言。数値は src/data/weekly/<slug>.json から出すので書かない。
+     * キーは gold_silver / gold_oil / gold_copper
+     */
+    ratioNotes: z.record(z.string(), z.string()).default({}),
+
+    /**
+     * ポジションとフローのうち、スクリプトで取れないもの（金ETF・銀ETFの残高など）。
+     * 公式ページか複数の報道で確かめた値だけを書き、取れなければ status: 未確認 で値を空にする。
+     * CFTC の建玉・BTC現物ETF・FOMC の織り込みは JSON から出すので、ここには書かない
+     */
+    flows: z
+      .array(
+        z.object({
+          label: z.string(),
+          value: z.string().default(''),
+          change: z.string().default(''),
+          dir: direction,
+          status: z.enum(['確定', '読み取り', '未確認']).default('確定'),
+          source: z.string().default(''),
           note: z.string().default(''),
         }),
       )
@@ -207,6 +248,27 @@ const weekly = defineCollection({
           kind: z.enum(['resistance', 'current', 'support']),
           value: z.string(),
           note: z.string().default(''),
+        }),
+      )
+      .default([]),
+
+    /**
+     * 金以外のテクニカル・レベル（銀・ドル円）。levels（金）と同じ形式を銘柄ごとに持つ。
+     * 2026-10-27 追加。W43 までは無い
+     */
+    moreLevels: z
+      .array(
+        z.object({
+          asset: z.string(),
+          levels: z
+            .array(
+              z.object({
+                kind: z.enum(['resistance', 'current', 'support']),
+                value: z.string(),
+                note: z.string().default(''),
+              }),
+            )
+            .default([]),
         }),
       )
       .default([]),

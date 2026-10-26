@@ -9,7 +9,7 @@
  * 件数が少ないうちは割合そのものに意味が無いことも明示する。
  */
 import Base from '../layouts/Base.astro';
-import { listReports } from '../lib/content';
+import { listReports, listWeekly } from '../lib/content';
 import { SITE_NAME } from '../config';
 
 const reports = await listReports();
@@ -40,6 +40,47 @@ const md = (s: string) => {
   const [, m, d] = s.split('-');
   return `${Number(m)}/${Number(d)}`;
 };
+
+/**
+ * 週ごと・月ごとの集計。号の発行日で束ねる（検証した号の日付ではない）。
+ * 割合は出さず件数を並べる。少ない件数の割合は、1件で大きく振れて意味を持たない。
+ */
+type Verdict = 'hit' | 'partial' | 'miss' | 'pending';
+const ORDER: Verdict[] = ['hit', 'partial', 'miss', 'pending'];
+function isoWeek(iso: string) {
+  const d = new Date(`${iso}T00:00:00Z`);
+  const day = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - day + 3);
+  const y = d.getUTCFullYear();
+  const first = new Date(Date.UTC(y, 0, 4));
+  const w = 1 + Math.round(((d.getTime() - first.getTime()) / 86400000 - 3 + ((first.getUTCDay() + 6) % 7)) / 7);
+  return { y, w };
+}
+function tallyBy(keyOf: (r: (typeof rows)[number]) => string, labelOf: (k: string) => string, hrefOf?: (k: string) => string) {
+  const map = new Map<string, Record<Verdict, number>>();
+  for (const r of rows) {
+    const k = keyOf(r);
+    if (!map.has(k)) map.set(k, { hit: 0, partial: 0, miss: 0, pending: 0 });
+    map.get(k)![r.verdict as Verdict] += 1;
+  }
+  return [...map.entries()]
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+    .map(([k, c]) => ({ key: k, label: labelOf(k), href: hrefOf?.(k), c, n: ORDER.reduce((s, v) => s + c[v], 0) }));
+}
+const byWeek = tallyBy(
+  (r) => {
+    const { y, w } = isoWeek(r.date);
+    return `${y}-w${String(w).padStart(2, '0')}`;
+  },
+  (k) => `第${Number(k.split('-w')[1])}週`,
+  (k) => `/weekly/${k}/`,
+);
+const byMonth = tallyBy(
+  (r) => r.date.slice(0, 7),
+  (k) => `${k.slice(0, 4)}年${Number(k.slice(5, 7))}月`,
+);
+const weeklySlugs = new Set((await listWeekly()).map((w) => w.id));
+const SHORT = { hit: '想定どおり', partial: '部分的', miss: '違った', pending: '持ち越し' } as const;
 ---
 
 <Base
@@ -73,6 +114,32 @@ const md = (s: string) => {
           判定済み {judged} 件。<strong>件数が少ないうちは、割合に意味はありません。</strong>
           相場の方向を当てることを目的にした記録ではなく、どの前提が外れやすいかを残すためのものです。
         </p>
+
+        {[{ h: '週ごと', rows: byWeek }, { h: '月ごと', rows: byMonth }].map((t) => (
+          <section class="period" aria-label={`${t.h}の集計`}>
+            <h2 class="period-h">{t.h}</h2>
+            <ul>
+              {t.rows.map((p) => (
+                <li>
+                  <span class="p-k">
+                    {p.href && weeklySlugs.has(p.key) ? <a href={p.href}>{p.label}</a> : p.label}
+                    <small>{p.n}件</small>
+                  </span>
+                  <span class="p-bar" role="img" aria-label={ORDER.map((v) => `${SHORT[v]}${p.c[v]}件`).join('、')}>
+                    {ORDER.filter((v) => p.c[v] > 0).map((v) => (
+                      <span class={`seg seg-${v}`} style={`flex:${p.c[v]}`}></span>
+                    ))}
+                  </span>
+                  <span class="p-n">
+                    {ORDER.filter((v) => p.c[v] > 0).map((v) => <span class={`n-${v}`}>{SHORT[v]} {p.c[v]}</span>)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+
+        <h2 class="period-h">号ごと</h2>
 
         <ul class="rv-list">
           {rows.map((r) => (
@@ -134,7 +201,29 @@ const md = (s: string) => {
   .rv-scenario { font-size: 15px; font-weight: 500; line-height: 1.7; margin: 10px 0 0; color: var(--ink); }
   .rv-note { font-size: 13.5px; line-height: 1.9; margin: 8px 0 0; color: var(--ink); }
 
+  .period { margin: 0 0 30px; }
+  .period-h {
+    font-family: var(--sa); font-size: 11px; font-weight: 500; letter-spacing: .16em;
+    color: var(--accent); padding: 4px 0 8px; margin-bottom: 4px; border-bottom: 1px solid var(--line-2);
+  }
+  .period ul { list-style: none; margin: 0; padding: 0; }
+  .period li {
+    display: grid; grid-template-columns: 130px minmax(0, 1fr) minmax(0, 1.3fr);
+    gap: 6px 16px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line);
+  }
+  .period li > * { min-width: 0; }
+  .p-k { font-family: var(--sa); font-size: 13px; color: var(--ink); }
+  .p-k a { color: var(--ink); border-bottom: 1px solid var(--line-2); }
+  .p-k small { margin-left: 8px; font-size: 11px; color: var(--muted); }
+  .p-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--surface-2); gap: 2px; }
+  .seg-hit { background: var(--up); }
+  .seg-partial { background: var(--accent); }
+  .seg-miss { background: var(--down); }
+  .seg-pending { background: var(--line-2); }
+  .p-n { display: flex; flex-wrap: wrap; gap: 4px 12px; font-family: var(--sa); font-size: 12px; color: var(--ink-2); }
+
   @media (max-width: 560px) {
+    .period li { grid-template-columns: minmax(0, 1fr); }
     .tally { grid-template-columns: repeat(2, 1fr); }
     .rv-verdict { margin-left: 0; }
   }

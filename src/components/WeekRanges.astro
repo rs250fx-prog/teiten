@@ -1,0 +1,60 @@
+---
+/**
+ * 週足のレンジ（金・銀・ドル円の高値・安値・始値→終値）。テクニカル・レベルの脇に置く。
+ * 数値は src/data/weekly/<slug>.json（tools/fetch-weekly.py）から描く。
+ */
+import { fixed, type Range } from '../lib/weekly';
+
+interface Props {
+  ranges: Range[];
+}
+const rows = Astro.props.ranges.filter((r) => r.high != null);
+---
+
+{rows.length > 0 && (
+  <section class="ranges" aria-label="週足のレンジ">
+    <h3>週足のレンジ</h3>
+    <ul>
+      {rows.map((r) => (
+        <li>
+          <span class="k">{r.label}</span>
+          <span class="hl">
+            <span><small>高値</small>{fixed(r.high!, r.digits!)}</span>
+            <span><small>安値</small>{fixed(r.low!, r.digits!)}</span>
+            <span><small>値幅</small>{fixed(r.high! - r.low!, r.digits!)}</span>
+          </span>
+          <span class="oc">始値 {fixed(r.open!, r.digits!)} → {fixed(r.close!, r.digits!)}</span>
+        </li>
+      ))}
+    </ul>
+    <p class="src">Yahoo Finance（金・銀は COMEX 期近先物の日足、ドル円は1時間足でニューヨーク17時区切り）。金の現物（USAGOLD）とは水準が少し違う。</p>
+  </section>
+)}
+
+<style>
+  .ranges { margin: 0 0 36px; }
+  h3 {
+    font-family: var(--sa);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .16em;
+    color: var(--accent);
+    padding: 4px 0 8px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  ul { list-style: none; }
+  li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 18px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  li:last-child { border-bottom: 0; }
+  .k { font-family: var(--sa); font-size: 12.5px; color: var(--muted); min-width: 140px; }
+  .hl { display: inline-flex; gap: 16px; flex-wrap: wrap; font-family: var(--sa); font-size: 15px; font-variant-numeric: tabular-nums; }
+  .hl small { font-size: 10.5px; color: var(--muted); margin-right: 5px; letter-spacing: .06em; }
+  .oc { font-family: var(--sa); font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .src { font-size: 12px; line-height: 1.8; color: var(--muted); margin-top: 8px; }
+</style>

@@ -3,6 +3,7 @@ import Base from '../../layouts/Base.astro';
 import ReportRow from '../../components/ReportRow.astro';
 import Subscribe from '../../components/Subscribe.astro';
 import { listReports, listWeekly, tagSlug, type Report } from '../../lib/content';
+import { TOPICS } from '../../config';
 
 export async function getStaticPaths() {
   const reports = await listReports();
@@ -23,6 +24,8 @@ export async function getStaticPaths() {
   for (const w of weekly) {
     for (const t of w.data.tags) bucket(t);
   }
+  // 説明文を用意したトピックは、記事が付く前からページを立てる（0件のあいだは noindex）
+  for (const t of Object.keys(TOPICS)) bucket(t);
 
   return [...map.entries()].map(([slug, { tag, entries }]) => ({
     params: { tag: slug },
@@ -35,6 +38,8 @@ export async function getStaticPaths() {
 }
 
 const { tag, entries, weekly } = Astro.props;
+const meta = TOPICS[tag];
+const empty = entries.length === 0 && weekly.length === 0;
 const all = await listReports();
 const latest = all[0];
 const breadcrumbs = [{ name: 'トピック', path: '/topics/' }, { name: tag }];
@@ -42,7 +47,8 @@ const breadcrumbs = [{ name: 'トピック', path: '/topics/' }, { name: tag }];
 
 <Base
   title={`${tag} のレポート`}
-  description={`「${tag}」に関連するデイリーレポートと週次まとめの一覧。同じ論点についての判断が、時間とともにどう変化したかを時系列で辿れます。資金の流れで読む市場レポート TEITEN（定点）。`}
+  description={meta?.description ?? `「${tag}」に関連するデイリーレポートと週次まとめの一覧。同じ論点についての判断が、時間とともにどう変化したかを時系列で辿れます。資金の流れで読む市場レポート TEITEN（定点）。`}
+  unlisted={empty}
   breadcrumbs={breadcrumbs}
   quotes={latest?.data.snapshot ?? []}
   mastDate={latest?.data.date}
@@ -58,8 +64,11 @@ const breadcrumbs = [{ name: 'トピック', path: '/topics/' }, { name: tag }];
         <span aria-current="page">{tag}</span>
       </nav>
       <h1>{tag}</h1>
+      {meta && <p class="lead">{meta.lead}</p>}
       <div class="count num">レポート {entries.length} 件{weekly.length > 0 && ` / 週次 ${weekly.length} 件`}</div>
     </header>
+
+    {empty && <p class="empty">このトピックの記事はまだありません。週次まとめで定点観測を始めた銘柄で、次の号から積み上がります。</p>}
 
     {entries.length > 0 && (
       <section class="sec">
@@ -114,7 +123,9 @@ const breadcrumbs = [{ name: 'トピック', path: '/topics/' }, { name: tag }];
     font-weight: 700;
     line-height: 1.4;
   }
+  .lead { font-size: 15.5px; line-height: 1.9; color: var(--ink-2); margin-top: 16px; max-width: 46em; }
   .count { font-size: 12px; color: var(--muted); margin-top: 14px; }
+  .empty { font-size: 14.5px; color: var(--ink-2); padding: 28px 0 60px; }
   .sec { padding: 34px 0 20px; }
   .wl { list-style: none; }
   .wl a {

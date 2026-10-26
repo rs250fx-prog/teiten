@@ -8,9 +8,14 @@ import WeeklyPerformance from '../../components/WeeklyPerformance.astro';
 import WeeklySchedule from '../../components/WeeklySchedule.astro';
 import PriceLadder from '../../components/PriceLadder.astro';
 import ScenarioCards from '../../components/ScenarioCards.astro';
+import WeeklyRatios from '../../components/WeeklyRatios.astro';
+import WeeklyFlows from '../../components/WeeklyFlows.astro';
+import WeeklyCorrelation from '../../components/WeeklyCorrelation.astro';
+import WeekRanges from '../../components/WeekRanges.astro';
 import {
   allWeekly, listReports, monthDay, longDate, weekdayJa, shortTitle, tagSlug, isoJst,
 } from '../../lib/content';
+import { weeklyData } from '../../lib/weekly';
 import { SITE_URL, OPERATOR, PUBLISHER_URL, EDITOR } from '../../config';
 
 export async function getStaticPaths() {
@@ -24,6 +29,10 @@ export async function getStaticPaths() {
 const { entry } = Astro.props;
 const { Content } = await render(entry);
 const d = entry.data;
+// tools/fetch-weekly.py が書いた機械取得の数値。無い週はレシオ・フロー・相関・レンジの節を出さない
+const wd = weeklyData(entry.id);
+// 右列の「週の数値」。未確認の行は値が空なので、表示用に「未確認」を入れる
+const railQuotes = d.performance.map((q) => (q.status === '未確認' || !q.value ? { ...q, value: '未確認', change: '' } : q));
 
 // その週に発行した日次レポート（古い順）を並べ、まとめから辿れるようにする
 const reports = await listReports();
@@ -131,7 +140,17 @@ const breadcrumbs = [{ name: '週次まとめ', path: '/weekly/' }, { name: d.ti
 
       <WeeklyPerformance rows={d.performance} />
 
-      <PriceLadder levels={d.levels} label="テクニカル・レベル（週末時点）" />
+      {wd && <WeeklyRatios ratios={wd.ratios} notes={d.ratioNotes} />}
+
+      {(wd || d.flows.length > 0) && <WeeklyFlows data={wd} flows={d.flows} />}
+
+      {wd && <WeeklyCorrelation data={wd.correlation} />}
+
+      <PriceLadder levels={d.levels} label={d.moreLevels.length > 0 ? 'テクニカル・レベル：金（週末時点）' : 'テクニカル・レベル（週末時点）'} />
+      {d.moreLevels.map((m) => (
+        <PriceLadder levels={m.levels} label={`テクニカル・レベル：${m.asset}（週末時点）`} />
+      ))}
+      {wd && <WeekRanges ranges={wd.ranges} />}
 
       <div class="prose">
         <Content />
@@ -155,7 +174,7 @@ const breadcrumbs = [{ name: '週次まとめ', path: '/weekly/' }, { name: d.ti
     <aside class="article-rail">
       <div class="article-rail-in">
         <div class="rail-only">
-          <Snapshot quotes={d.performance} variant="list" heading="週の数値" />
+          <Snapshot quotes={railQuotes} variant="list" heading="週の数値" />
         </div>
         <RailList
           heading="この週の日次レポート"

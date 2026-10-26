@@ -1,0 +1,174 @@
+---
+/**
+ * ポジションとフロー。週単位でしか出ないデータの置き場。
+ *
+ * - CFTC の建玉（金・銀・原油・円のネット投機ポジション、4週）
+ * - BTC現物ETFの週間フロー（Farside）
+ * - 次回・次々回の FOMC の織り込み（FF金利先物からの算出）
+ * - スクリプトで取れないもの（金ETF・銀ETFの残高など）は frontmatter の flows
+ *
+ * 前の3つは src/data/weekly/<slug>.json から描く。値が「未確認」の項目は出さずに、
+ * 何が取れなかったかだけを末尾に書く。
+ */
+import { fixed, signed, dirOf, type WeeklyData } from '../lib/weekly';
+
+interface Flow {
+  label: string;
+  value: string;
+  change: string;
+  dir: 'up' | 'down' | 'flat';
+  status: '確定' | '読み取り' | '未確認';
+  source: string;
+  note: string;
+}
+interface Props {
+  data?: WeeklyData;
+  flows: Flow[];
+}
+const { data, flows } = Astro.props;
+
+const cot = (data?.cot ?? []).filter((c) => c.history.length > 0);
+const etf = data?.btc_etf;
+const fw = data?.fedwatch;
+const missing = [
+  ...(data?.cot ?? []).filter((c) => c.history.length === 0).map((c) => `建玉（${c.label}）`),
+  ...(data && etf?.total == null ? ['BTC現物ETFのフロー'] : []),
+  ...(data && fw && fw.meetings.length === 0 ? ['FOMC の織り込み'] : []),
+  ...flows.filter((f) => f.status === '未確認').map((f) => f.label),
+];
+const manual = flows.filter((f) => f.status !== '未確認');
+const show = cot.length > 0 || etf?.total != null || (fw?.meetings.length ?? 0) > 0 || manual.length > 0;
+
+const md = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`;
+const maxAbs = (xs: number[]) => Math.max(1, ...xs.map(Math.abs));
+---
+
+{show && (
+  <section class="flows" aria-label="ポジションとフロー">
+    <div class="sec-head">
+      <h2>ポジションとフロー</h2>
+    </div>
+
+    {fw && fw.meetings.length > 0 && (
+      <div class="blk">
+        <h3>FOMC の織り込み</h3>
+        <ul class="fw">
+          {fw.meetings.map((m) => (
+            <li>
+              <span class="k">{md(m.meeting)} の会合</span>
+              <span class="v">{fixed(m.post, 2)}%</span>
+              <span class:list={['c', dirOf(m.move_bp)]}>{signed(m.move_bp, 1, 'bp')}</span>
+              <span class="sub">0.25%の{m.move_bp >= 0 ? '利上げ' : '利下げ'} {fixed(Math.abs(m.hikes), 2)} 回分</span>
+            </li>
+          ))}
+        </ul>
+        <p class="src">
+          FF金利先物（CBOT）から算出した会合後の政策金利の見込み。起点は実効FF金利 {fixed(fw.effr!, 2)}%（{md(fw.effr_asof!)}、FRED EFFR）。
+          CME FedWatch と同じ考え方の算出値で、FedWatch の数値そのものではない。
+        </p>
+      </div>
+    )}
+
+    {cot.length > 0 && (
+      <div class="blk">
+        <h3>CFTC 建玉（ネットの投機ポジション、4週）</h3>
+        <ul class="cot">
+          {cot.map((c) => {
+            const m = maxAbs(c.history.map((h) => h.net));
+            const last = c.history[c.history.length - 1];
+            const prev = c.history[c.history.length - 2];
+            return (
+              <li>
+                <div class="cot-h">
+                  <span class="k">{c.label}<small>{c.who}</small></span>
+                  <span class="v">{signed(last.net, 0)}</span>
+                  {prev && <span class:list={['c', dirOf(last.net - prev.net)]}>前週比 {signed(last.net - prev.net, 0)}</span>}
+                </div>
+                <div class="bars" role="img" aria-label={`${c.label}のネットポジション：${c.history.map((h) => `${md(h.date)} ${signed(h.net, 0)}`).join('、')}`}>
+                  {c.history.map((h) => (
+                    <span class="bar-w">
+                      <span class:list={['bar', h.net >= 0 ? 'pos' : 'neg']} style={`--w:${(Math.abs(h.net) / m) * 100}%`}></span>
+                      <span class="bar-d">{md(h.date)}<b>{signed(h.net, 0)}</b></span>
+                    </span>
+                  ))}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+        <p class="src">CFTC Commitments of Traders。火曜時点の建玉で、金曜に公表。金・銀・原油はマネージド・マネー、円はレバレッジド・ファンド。単位は枚。</p>
+      </div>
+    )}
+
+    {(etf?.total != null || manual.length > 0) && (
+      <div class="blk">
+        <h3>ETF の資金フロー</h3>
+        <ul class="etf">
+          {etf?.total != null && (
+            <li>
+              <span class="k">BTC現物ETF（米国・合計）</span>
+              <span class:list={['v', dirOf(etf.total)]}>{signed(etf.total, 1)}百万ドル</span>
+              {etf.status === '読み取り' && <span class="badge">読み取り</span>}
+              <span class="sub">
+                {etf.days.map((d) => `${md(d.date)} ${d.flow == null ? '未集計' : signed(d.flow, 1)}`).join(' / ')}
+                {etf.note && `（${etf.note}）`}　Farside Investors
+              </span>
+            </li>
+          )}
+          {manual.map((f) => (
+            <li>
+              <span class="k">{f.label}</span>
+              <span class="v">{f.value}</span>
+              {f.change && <span class:list={['c', f.dir]}>{f.change}</span>}
+              {f.status === '読み取り' && <span class="badge">読み取り</span>}
+              {(f.note || f.source) && <span class="sub">{f.note}{f.note && f.source && '　'}{f.source}</span>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {missing.length > 0 && <p class="miss">未確認：{missing.join('、')}</p>}
+  </section>
+)}
+
+<style>
+  .flows { margin: 10px 0 44px; }
+  .blk + .blk { margin-top: 26px; }
+  h3 {
+    font-family: var(--sa);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .16em;
+    color: var(--accent);
+    padding: 4px 0 8px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  ul { list-style: none; }
+  li { padding: 12px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+  li:last-child { border-bottom: 0; }
+  .fw li, .etf li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+  .k { font-family: var(--sa); font-size: 12.5px; color: var(--muted); min-width: 150px; }
+  .k small { display: block; font-size: 10.5px; letter-spacing: .04em; }
+  .v { font-family: var(--sa); font-size: 17px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .c, .v.up, .v.down { font-variant-numeric: tabular-nums; }
+  .c { font-family: var(--sa); font-size: 13px; }
+  .up { color: var(--up); }
+  .down { color: var(--down); }
+  .flat { color: var(--muted); }
+  .sub { flex-basis: 100%; font-size: 13px; line-height: 1.8; color: var(--ink-2); }
+  .badge {
+    font-family: var(--sa); font-size: 10.5px; color: var(--muted);
+    border: 1px solid var(--line-2); border-radius: 3px; padding: 1px 6px;
+  }
+  .cot-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+  .bars { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+  .bar-w { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .bar { display: block; height: 8px; width: var(--w); min-width: 2px; border-radius: 2px; }
+  .bar.pos { background: var(--accent); }
+  .bar.neg { background: var(--down); }
+  .bar-d { font-family: var(--sa); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bar-d b { display: block; font-weight: 400; color: var(--ink-2); font-size: 11.5px; }
+  .src { font-size: 12px; line-height: 1.8; color: var(--muted); margin-top: 8px; }
+  .miss { font-size: 12.5px; color: var(--muted); margin-top: 14px; }
+</style>

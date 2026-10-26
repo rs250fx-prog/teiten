@@ -91,12 +91,14 @@ src/
 ├── remark-strong-fix.mjs 日本語で閉じられなかった強調記号を救済する remark プラグイン
 ├── remark-flow.mjs       「資金　A → B」等をフロー表示に変換する remark プラグイン
 ├── lib/content.ts        コレクションの取得・整形ヘルパー
+├── lib/weekly.ts         週次の機械取得データ（data/weekly/*.json）の読み込みと表示の補助
 ├── layouts/Base.astro    全ページ共通の外枠
 ├── components/           ページをまたいで使う部品
 ├── pages/                ルーティング
 ├── content/
 │   ├── reports/          デイリーレポート（YYYY-MM-DD.md）
 │   └── weekly/           週次まとめ（YYYY-wNN.md）
+├── data/weekly/          週次の機械取得データ（YYYY-wNN.json）。tools/fetch-weekly.py が書く。手で直さない
 └── styles/global.css     デザイントークンと共通スタイル
 public/
 ├── _headers              Cloudflare のレスポンスヘッダ
@@ -105,7 +107,11 @@ public/
 tools/
 ├── admin.py              公開管理の画面（ローカル、127.0.0.1:4399）
 ├── new-report.py         日次の雛形を作る（号数を自動採番）
-├── new-weekly.py         週次の雛形を作る（週番号と期間を自動算出）
+├── new-weekly.py         週次の雛形を作る（週番号と期間を自動算出。performance は JSON の取得値で埋める）
+├── fetch-indicators.py   日次の指標の一括取得（FRED。fetch-gold / fetch-market / fetch-extra も呼ぶ）
+├── fetch-market.py       Yahoo Finance の日足・為替のNY17時（DXY・株・原油・銀・プラチナ・銅・MOVE ほか）
+├── fetch-extra.py        日本10年債（財務省）・BTC（CoinGecko）・BTC現物ETFフロー（Farside）
+├── fetch-weekly.py       週次の数値を一括で取り、src/data/weekly/YYYY-wNN.json に書く
 ├── check-report.py       公開前の検査（日次・週次の両方）
 ├── make-og.py            OG画像の生成
 ├── make-thumb.mjs        note用サムネイルの生成（部品は tools/thumb/）
@@ -179,7 +185,10 @@ docs/SPEC.md              本書
 |---|---|---|
 | `year` / `week` | number | ISO週番号。ファイル名と一致させる |
 | `start` / `end` | string | 対象期間。月曜〜金曜が通例 |
-| `performance` | Row[] | 各資産の週次パフォーマンス。`{label, value, change, dir, note}`。**日次の `snapshot` と違い寸評（`note`）を持つ**。1週間を振り返る記事では数字だけでは何が起きたか伝わらないため |
+| `performance` | Row[] | 各資産の週次パフォーマンス。`{key?, group?, label, value, change, dir, status, note}`。**日次の `snapshot` と違い寸評（`note`）を持つ**。1週間を振り返る記事では数字だけでは何が起きたか伝わらないため。第44週から25銘柄を `group`（metals / rates / fx / commodities / equities / crypto / vol / credit）で束ねて表示する。`key` のある行は `check-report.py` が JSON の取得値と突き合わせる。`status` は 確定 / 読み取り / 未確認（未確認は値を空にし、表示が「未確認」と出す）。`group` の無い第43週までの行は label から推定してグループに入れる |
+| `ratioNotes` | Record | 週のレシオ（金/銀・金/原油・金/銅）への一言。数値は JSON から出る |
+| `flows` | Flow[] | スクリプトで取れないフロー（金ETF・銀ETFの保有量）。`{label, value, change, dir, status, source, note}` |
+| `moreLevels` | {asset, levels}[] | 金以外（銀・ドル円）のテクニカル・レベル |
 | `schedule` | Day[] | 来週の主要スケジュール。`{date, items:[{label, key}]}`。`key: true` で★が付く |
 | `levels` | Level[] | テクニカル・レベル（週末時点）。日次と同じ形式 |
 | `scenarios` | Scenario[] | 来週のシナリオ。`{kind, trigger, chain, target}`、`kind` は bull / base / bear。**週次の看板要素**。散文にすると3案の比較ができず、翌週の検証もできない |
@@ -187,6 +196,13 @@ docs/SPEC.md              本書
 | `thumb` / `infographic` | object? | note 用のサムネイルと図解の文言。日次と同じ形で、数値は `performance` から取る。サイトには出ない |
 
 詳細ページは `start`〜`end` の期間に該当する日次レポートを自動で逆引きして並べる。
+
+**週次の機械取得データ（`src/data/weekly/YYYY-wNN.json`）**：`tools/fetch-weekly.py --write` が書く。25銘柄の週末値と前週末比、
+レシオ3本と直近20週の推移、週足のレンジ（金・銀・ドル円）、CFTC 建玉（金・銀・原油・円、4週）、BTC現物ETFの週間フロー、
+FOMC の織り込み（FF金利先物から算出）、週次相関（金 × 実質金利・DXY・Nasdaq・BTC、直近8週）を持つ。
+**週のレシオ・ポジションとフロー・週次相関・週足のレンジは、frontmatter を経ずにこの JSON から直接描く。**
+同じ数字を2か所に書くと片方だけ直した号が出るため（thumb と同じ理由）。JSON が無い週はこれらの節を出さない。
+第39〜43週の JSON は 2026-10-27 に遡って作った（機械取得の値だけで、本文・performance は変えていない）。
 
 ### 自動連携
 
@@ -204,9 +220,10 @@ docs/SPEC.md              本書
 | `/reports/` | 全アーカイブ。月別に束ね、タグ索引を上部に置く |
 | `/reports/<date>/` | レポート詳細。パンくず、要点、本文、前後の号。記事の中身はすべて本文幅（730px）に揃える。1080px以上では右列に数値指標（縦並び）と関連記事を置き、それ未満では数値指標は記事の上、関連記事は記事の下に回る |
 | `/weekly/` | 週次まとめ一覧 |
-| `/weekly/<slug>/` | 週次詳細。日次と同じ骨組み（本文幅730px＋右列）。右列は週の数値（寸評なし）と、その週の日次レポートの逆引き |
+| `/weekly/<slug>/` | 週次詳細。日次と同じ骨組み（本文幅730px＋右列）。並びは 要点 → 各資産の週次パフォーマンス（グループ別）→ 週のレシオ → ポジションとフロー → 週次相関 → テクニカル・レベル（金・銀・ドル円）と週足のレンジ → 本文 → シナリオ → スケジュール → Market Bias。右列は週の数値（寸評なし）と、その週の日次レポートの逆引き。**上部のティッカー（日次の snapshot 8本）は変えない** |
+| `/review/` | 答え合わせの履歴。通算、週ごと・月ごとの件数（号の発行日で束ねる。割合は出さない）、号ごとの一覧 |
 | `/topics/` | タグ索引 |
-| `/topics/<slug>/` | タグ別一覧 |
+| `/topics/<slug>/` | タグ別一覧。`src/config.ts` の `TOPICS` にあるタグは専用の description と導入文を持ち、記事が0件でもページを立てる（0件のあいだは noindex） |
 | `/about/` | 編集方針・名前の由来・運営者情報（`#publisher`） |
 | `/privacy/` | プライバシーポリシー |
 | `/404` | 最新レポート3件への導線つき |
@@ -548,6 +565,7 @@ python tools/make-og.py
 
 | 日付 | 内容 |
 |---|---|
+| 2026-10-27 | **週次まとめの銘柄とデータを拡充した**（引き継ぎ書「TEITEN 週次まとめ 銘柄拡充」Phase 1〜3）。目的は銘柄を増やすことではなく、金を説明するのに要る資金の受け皿を網羅すること。(1) `performance` を9から25銘柄にし、貴金属・金利・為替・商品・株・Crypto・Vol・クレジットのグループで表示（銀・プラチナ・円建て金・米2年・2-10年スプレッド・実質金利・10年BEI・日本10年・ユーロドル・Brent・銅・ダウ・BTC・日経VI・MOVE・HYスプレッドを追加）。(2) **`tools/fetch-weekly.py` で全銘柄を機械で取り、`src/data/weekly/YYYY-wNN.json` に書く。**雛形の performance はこの値で埋まり、`check-report.py` が突き合わせる。銘柄を倍にして報道を寄せ集めると、割れと捏造の危険も倍になるため。(3) 新しい節「週のレシオ」（金/銀・金/原油・金/銅、直近20週の折れ線）、「ポジションとフロー」（CFTC 建玉4週・BTC現物ETF・FOMC の織り込み・金ETF）、「週次相関」（直近8週）、週足のレンジ。テクニカル・レベルは銀・ドル円にも（`moreLevels`）。(4) `/review/` に週ごと・月ごとの集計。(5) トピックの説明文（`TOPICS`）と、銀・プラチナ・銅・円建て金・ユーロドル・米2年債・COT・クレジットスプレッドのページ。(6) `/sources/` に新しい取得元。**日次の snapshot とティッカーは変えていない。**日次の取得スクリプトには銀・プラチナ・銅・MOVE・HYスプレッド・日本10年債・BTC・BTC現物ETFを足し、本文で数値を添えられるようにした。CME FedWatch・LBMA・GLD・iShares は自動で取れず、FOMC の織り込みは FF金利先物から算出、金ETFは公式ページか報道で確かめた値だけを `flows` に書く |
 | 2026-10-25 | **週次にも note 用の図解を出せるようにした。**`node tools/make-infographic.mjs YYYY-wNN` が `note/info_YYYYwNN.png` を出し、`copy-thumbs.mjs` が `dist/info/YYYY-wNN.png` へ写す。週次 frontmatter に `infographic` を足し、`ref` は `performance` を引く（変化は前週比）。見出しの言葉だけ週次用に変え、ブロックの組み方は日次と同じ。シナリオの3案は note と同じく図解にも入れない。第43週から |
 | 2026-10-25 | **ドル円・ユーロドルを Yahoo Finance の1時間足から取るようにした（`tools/fetch-market.py`）。**報道からの取得では時刻の違う値が割れ、ほぼ毎号「未確認」だった。その日のニューヨーク17時より前の最後の1時間足の終値を終値とする。詳細は `docs/SOURCES.md` |
 | 2026-10-23 | **各号に編集者の署名「編集：村瀬 一郎」を入れ、構造化データの `author` を組織から Person に変えた。**金融情報は YMYL 領域で、誰が責任を持って出しているかが検索評価と読者の信頼に直結するため。肩書は「執筆」ではなく「編集」。原稿は定期実行が作り、人が確認して公開する運用なので、そちらが実態に近い。署名は `/about/#editor` に飛び、編集者の節を新設した。発行元（publisher）は従来どおり組織 |

@@ -58,7 +58,9 @@ Claude の cloud routines に登録しているプロンプトの原本。**ル�
 
 1. `python tools/new-report.py <YYYY-MM-DD>` で雛形を作る。号数は自動採番されるので手で付けない
 2. `python tools/fetch-indicators.py` を実行する。実質金利・VIX・米金利・金・ドル指数・日経225・日経VI・
-   WTI・Brent・Nasdaq・ダウはここで取る。**出力の「◯/◯時点」「◯/◯終値」を落とさずに本文へ書くこと。**
+   WTI・Brent・Nasdaq・ダウ・ドル円・ユーロドル・銀・プラチナ・銅・MOVE・米HYスプレッド・日本10年債・BTC・
+   BTC現物ETFの資金フローはここで取る。**snapshot の8項目は変えない。**銀・プラチナ・銅・MOVE・HYスプレッドは、
+   本文で触れるときに数値と日付を添えるために使う（「銀もそろって下げた」と書くなら値と変化率を書く）。**出力の「◯/◯時点」「◯/◯終値」を落とさずに本文へ書くこと。**
    **ここで取れた「◯/◯終値」は、報道と食い違ってもこちらを採る**（docs/SOURCES.md §1）。「読み取り」は終値ではないので、
    前営業日のドル指数・原油の終値は報道から取る（SKILL.md「データを集める」節）。残りをウェブ検索で補う。
    SKILL.md の「データを集める」節に挙がっている項目をすべて当たる。
@@ -197,10 +199,15 @@ Claude の cloud routines に登録しているプロンプトの原本。**ル�
 
 ## 手順
 
-1. `python tools/new-weekly.py` で雛形を作る
+1. `python tools/fetch-weekly.py --write` で週の数値を一括で取る（25銘柄・レシオ・建玉・ETFフロー・FOMC の織り込み・相関・週足のレンジ）。
+   `src/data/weekly/<YYYY-wNN>.json` ができる。**この JSON を手で書き換えない。**出力の「△」「NG」の行を控えておく
+1-B. `python tools/new-weekly.py` で雛形を作る。performance に取得値が入る。**必ず手順1のあとに実行する**
+   （「取得値がありません」と出たら雛形を消し、手順1からやり直す）
 2. `src/content/reports/` のうち `start`〜`end` に該当する日次をすべて読む
-3. 金曜の米国セッションをウェブ検索で補う（上記のとおり日次には無い）
-4. データを検証する。複数ソースで突き合わせ、矛盾したら日付と具体性のあるほうを採る。唯一の出所しかない指標は掲載せず「未確認」と書く
+3. 金曜の米国セッションの値動きの理由（材料）をウェブ検索で補う（上記のとおり日次には無い）。**数値は手順1の取得値を使う。**
+   手順1で「未確認」になった銘柄だけ報道を複数社で突き合わせ、決まれば value・change・dir を書いて status を消す。決まらなければ未確認のまま
+4. データを検証する。複数ソースで突き合わせ、矛盾したら日付と具体性のあるほうを採る。唯一の出所しかない指標は掲載せず「未確認」と書く。
+   **手順1の取得値と報道が食い違ったら取得値を採る**（docs/SOURCES.md §1）。performance の value・change・dir・status を書き換えない
 5. 本文を書く。4節すべてを埋める。節を省略しない
 6. `python tools/check-report.py <YYYY-wNN>` を実行し、エラーが0になるまで直す
 7. `npm ci && npm run build` でビルドが通ることを確認する（npm が失敗しても、検査が通っていれば次へ進み、その旨を結果に書く）
@@ -215,7 +222,8 @@ Claude の cloud routines に登録しているプロンプトの原本。**ル�
 7-C. frontmatter の `infographic` に図解の文言を書き、`node tools/make-infographic.mjs <YYYY-wNN>` で
    note 用の図解を書き出す（SKILL.md のステップ8-C）。**数値は `ref` で performance から引き、performance に無い数字だけを
    `infographic.quotes` に書く。**`watch` は `schedule` にある予定だけ。エラーが出たら文言を詰めて、通るまでやり直す
-8. commit して `main` に push する。`note/<YYYY-wNN>.md`、`note/thumb_<YYYYwNN>.png`、`note/info_<YYYYwNN>.png` も add に含める
+   `infographic.table` は必ず書く（省くと25行すべてが表になる）
+8. commit して `main` に push する。`src/data/weekly/<YYYY-wNN>.json`、`note/<YYYY-wNN>.md`、`note/thumb_<YYYYwNN>.png`、`note/info_<YYYYwNN>.png` も add に含める
 
 ## 書き方
 
@@ -223,7 +231,13 @@ Claude の cloud routines に登録しているプロンプトの原本。**ル�
 
 特に手を抜かないこと。
 
-- `performance` … 8〜9件。金・原油・米株・日経・ドル指数・ドル円・米金利・VIX をひととおり。値と変化率だけでなく `note`（寸評）を必ず書く。数字だけでは何が起きたか伝わりません
+- `performance` … 雛形の25行（取得値入り）をそのまま残し、並び順も変えない。`note`（寸評）を書く。少なくとも金・銀・米2年・米10年・ドル指数・ドル円・原油・日経・BTC には必ず書く。数字だけでは何が起きたか伝わりません。「△ ◯/◯時点」と出た行は寸評に日付を、`読み取り` の行は「終値」と書かない、限月交代の行は限月を書く
+- `ratioNotes` … 金/銀・金/原油・金/銅のそれぞれに一言。上がった・下がったではなく、何を意味するか（SKILL.md の型）
+- `flows` … 金ETF（GLD）・銀ETF（SLV）の保有量。公式ページか複数の報道で確かめられた値だけ。確かめられなければ status: 未確認 のまま
+- `moreLevels` … 銀とドル円のテクニカル・レベル。JSON の週足のレンジを根拠に使ってよい
+- 本文の「来週の備え」に `### 金・銀・ドル円の焦点` を置き、3本の予想レンジを書く
+- 本文の「今週の資金フロー構造」で、レシオ・建玉・ETFフロー・FOMC の織り込みを根拠として引く（サイトに数値は出るので並べ直さない）
+- `tags` … 論点にした銘柄のトピック名（銀 / プラチナ / 銅 / 円建て金 / ユーロドル / 米2年債 / COT / クレジットスプレッド）を表記どおりに
 - `scenarios` … bull / base / bear の3案。`trigger`（発動条件）・`chain`（因果連鎖）・`target`（価格目処）を同じ粒度で書く
 - `levels` … 週末時点のテクニカル・レベル
 - `bias` … 来週のスタンス
@@ -249,7 +263,8 @@ Claude の cloud routines に登録しているプロンプトの原本。**ル�
 - 検査の結果（エラー・警告の件数）
 - 今週の核心テーマ
 - 3シナリオ（bull / base / bear）の要点
-- 取得できなかった指標があれば、その一覧
+- 取得できなかった指標があれば、その一覧（`fetch-weekly.py` の「NG」の行をそのまま。「読み取り」になった銘柄も）
+- 週のレシオ3本の値と、FOMC の織り込み（次回・次々回）の要点
 - note 用の簡易版（`note/<YYYY-wNN>.md`）を書いたか
 - note 用サムネイル（`note/thumb_<YYYYwNN>.png`）を書き出せたか。「注意」が出た行があればその内容
 - note 用の図解（`note/info_<YYYYwNN>.png`）を書き出せたか。公開後は `https://teiten.trade/info/<YYYY-wNN>.png`
@@ -283,6 +298,7 @@ Claude の cloud routines に登録しているプロンプトの原本。**ル�
 
 | 日付 | 内容 |
 |---|---|
+| 2026-10-27 | **週次の銘柄拡充に合わせて両方を直した。**週次は手順1に `tools/fetch-weekly.py --write`（25銘柄・レシオ・建玉・ETFフロー・FOMC の織り込み・相関・週足のレンジを JSON に書く）を足し、雛形の performance を取得値で埋め、書くのは寸評だけにした。ratioNotes・flows・moreLevels・金・銀・ドル円の予想レンジ・トピックのタグを「書き方」に足し、push に JSON を含め、完了報告に取れなかった銘柄とレシオ・FOMC の織り込みを足した。日次は手順2の取得対象に銀・プラチナ・銅・MOVE・HYスプレッド・日本10年債・BTC・BTC現物ETFを足した（snapshot は変えない）。**両ルーティン（`trig_01YXGbBvr9ALLagKshTTcikj` / `trig_016QTPqnayVK9vrrR6HSGWNu`）に同じ文面を反映済み** |
 | 2026-10-25 | 週次の手順に 7-C（note 用の図解 `tools/make-infographic.mjs <YYYY-wNN>`）を追加し、完了時の報告に足した。**定期実行の側のプロンプトにも同じ手順を足すこと**（第43週の時点で、ルーティンのプロンプトには 7-A も入っていなかった） |
 | 2026-10-15 | 日次の手順に 7-C（note 用の図解 `tools/make-infographic.mjs`）を追加し、完了時の報告に図解の結果とURL（`/info/<YYYY-MM-DD>.png`）を足した。ChatGPT で手作りしていた図解の置き換え。登録済みのルーティン（`trig_01YXGbBvr9ALLagKshTTcikj`）にも同じ文面を反映済み |
 | 2026-10-14 | 日次の手順2・3と公開の判定を直した。**`fetch-indicators.py` が Yahoo Finance からドル指数・日経225・日経VI・原油・Nasdaq・ダウの日足終値も出すようになり、その値は報道と食い違っても採る。**10/13・10/14 号はドル指数が報道の寄せ集めで割れて未確認になり、10/14 号は自動公開が止まった。**登録済みのルーティンの文面にも同じ変更を反映すること** |

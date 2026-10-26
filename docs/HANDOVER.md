@@ -196,11 +196,19 @@ insight.factset.com
 - 前号シナリオC（雇用統計）の答え合わせ。10/2号の `review` はシナリオAを `partial` とし、
   Cは持ち越している
 
-### 4-5. `fetch-indicators.py` に日本10年債とBTCを足す
+### 4-5. 週次の銘柄拡充を初回（第44週、10/31 土）で確かめる ★未確認
 
-ドル指数・日経225・日経VI・原油・Nasdaq・ダウは 10/14 に `tools/fetch-market.py`（Yahoo Finance）で
-スクリプト化した（`docs/SPEC.md` 更新履歴 2026-10-14）。**残りは日本10年債と BTC で、取り方は手作業のまま**。
-財務省のCSVと CoinGecko のAPIはどちらも鍵が要らず、クラウドの実行環境からも通る（10/14 に確認）。
+2026-10-27 に週次を25銘柄にし、`tools/fetch-weekly.py` で機械取得するようにした（`docs/SPEC.md` 更新履歴 2026-10-27）。
+日本10年債と BTC も `tools/fetch-extra.py` でスクリプト化した（旧 §4-5 は完了）。**手元からは全項目取れたが、
+クラウドの定期実行からは未確認。**特に次の4つは初めてクラウドから叩く：
+
+- 米財務省の利回り曲線CSV（`home.treasury.gov`）
+- CFTC の公開API（`publicreporting.cftc.gov`）
+- Farside（`farside.co.uk`。手元では生の表が返った。Cloudflare の確認画面に当たる可能性がある）
+- Yahoo の限月指定の先物（`CLZ26.NYM`、`ZQZ26.CBT` など）
+
+初回の下書きで「未確認」になった項目があれば、どの取得が落ちたかを完了報告から見て直す。
+土曜9時は先物とドル指数の金曜の足が未確定（13時 JST に確定）なので、それらが「読み取り」になるのは正常。
 
 ### 4-6. `fetch-market.py` を定期実行で確かめる
 

@@ -17,6 +17,7 @@ from pathlib import Path
 
 WEEKLY = Path("src/content/weekly")
 REPORTS = Path("src/content/reports")
+DATA = Path("src/data/weekly")
 JST = zoneinfo.ZoneInfo("Asia/Tokyo")
 WD = "月火水木金土日"
 
@@ -45,17 +46,22 @@ points:
   - ""
 
 # 各資産の週次パフォーマンス。値だけでなく寸評（note）を付ける
-# dir は up / down / flat
+# value / change / dir / status は tools/fetch-weekly.py の取得値。**書き換えない**（check-report.py が突き合わせる）。
+# 書くのは note だけ。status: 未確認 の行は値を空のまま残し、取れた出所があれば本文に書く
 performance:
-  - {{ label: "金（XAU/USD）",  value: "", change: "", dir: flat, note: "" }}
-  - {{ label: "WTI原油",        value: "", change: "", dir: flat, note: "" }}
-  - {{ label: "S&P 500",        value: "", change: "", dir: flat, note: "" }}
-  - {{ label: "Nasdaq総合",     value: "", change: "", dir: flat, note: "" }}
-  - {{ label: "日経225",        value: "", change: "", dir: flat, note: "" }}
-  - {{ label: "ドル指数 DXY",   value: "", change: "", dir: flat, note: "" }}
-  - {{ label: "USD/JPY",        value: "", change: "", dir: flat, note: "" }}
-  - {{ label: "米10年債利回り", value: "", change: "", dir: flat, note: "" }}
-  - {{ label: "VIX",            value: "", change: "", dir: flat, note: "" }}
+{performance}
+# 週のレシオ（金/銀・金/原油・金/銅）への一言。数値は JSON から出るので書かない。
+# 例：「金/銀が2週続けて上昇。銀のほうが売られ、不安の買いではなく換金売りの色が濃い」
+ratioNotes:
+  gold_silver: ""
+  gold_oil: ""
+  gold_copper: ""
+
+# ポジションとフローのうち、スクリプトで取れないもの。公式ページか複数の報道で確かめた値だけ。
+# 確かめられなければ status: 未確認 のまま（値は空）。建玉・BTC現物ETF・FOMC の織り込みは JSON から出る
+flows:
+  - {{ label: "金ETF（GLD）の保有量", value: "", change: "", dir: flat, status: 未確認, source: "", note: "" }}
+  - {{ label: "銀ETF（SLV）の保有量", value: "", change: "", dir: flat, status: 未確認, source: "", note: "" }}
 
 # 来週の主要スケジュール。key: true は★付きで強調される
 schedule:
@@ -68,6 +74,19 @@ levels:
   - {{ kind: current,    value: "", note: "" }}
   - {{ kind: support,    value: "", note: "" }}
   - {{ kind: support,    value: "", note: "" }}
+
+# 銀・ドル円のテクニカル・レベル（levels は金）。週足のレンジは JSON から出るので、それを根拠に引いてよい
+moreLevels:
+  - asset: "銀（XAG/USD）"
+    levels:
+      - {{ kind: resistance, value: "", note: "" }}
+      - {{ kind: current,    value: "", note: "" }}
+      - {{ kind: support,    value: "", note: "" }}
+  - asset: "ドル円（USD/JPY）"
+    levels:
+      - {{ kind: resistance, value: "", note: "" }}
+      - {{ kind: current,    value: "", note: "" }}
+      - {{ kind: support,    value: "", note: "" }}
 
 # 来週のシナリオ。発動条件・因果連鎖・価格目処を同じ粒度で書く
 scenarios:
@@ -134,7 +153,53 @@ draft: true
 ### 日経・円の焦点
 
 予想レンジ：上限　　円 〜 下限　　円
+
+### 金・銀・ドル円の焦点
+
+金の予想レンジ：上限　　ドル 〜 下限　　ドル
+銀の予想レンジ：上限　　ドル 〜 下限　　ドル
+ドル円の予想レンジ：上限　　円 〜 下限　　円
 '''
+
+# 雛形に並べる performance の行（fetch-weekly.py の JSON が無いとき）。値は空
+FALLBACK_KEYS = [
+    ("xau", "metals", "金（XAU/USD）"), ("xag", "metals", "銀（XAG/USD）"),
+    ("xpt", "metals", "プラチナ（XPT/USD）"), ("xaujpy", "metals", "円建て金（XAU/JPY）"),
+    ("us2y", "rates", "米2年債利回り"), ("us10y", "rates", "米10年債利回り"),
+    ("us2s10s", "rates", "米2-10年スプレッド"), ("real10", "rates", "実質金利（TIPS10年）"),
+    ("bei10", "rates", "期待インフレ（10年BEI）"), ("jgb10", "rates", "日本10年債利回り"),
+    ("dxy", "fx", "ドル指数 DXY"), ("usdjpy", "fx", "USD/JPY"), ("eurusd", "fx", "EUR/USD"),
+    ("wti", "commodities", "WTI原油"), ("brent", "commodities", "Brent原油"), ("copper", "commodities", "銅（COMEX）"),
+    ("spx", "equities", "S&P 500"), ("ndx", "equities", "Nasdaq総合"), ("dji", "equities", "ダウ平均"),
+    ("n225", "equities", "日経225"), ("btc", "crypto", "BTC/USD"),
+    ("vix", "vol", "VIX"), ("nkvi", "vol", "日経VI"), ("move", "vol", "MOVE指数"), ("hy", "credit", "米HYスプレッド"),
+]
+
+
+def performance_lines(slug):
+    """src/data/weekly/<slug>.json があれば取得値を入れた行、無ければ値の空いた行"""
+    import json
+    import importlib.util
+    path = DATA / f"{slug}.json"
+    lines = []
+    if path.exists():
+        spec = importlib.util.spec_from_file_location("fetch_weekly", Path(__file__).with_name("fetch-weekly.py"))
+        fw = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(fw)
+        group = None
+        for a in json.loads(path.read_text(encoding="utf-8"))["assets"]:
+            if a["group"] != group:
+                group = a["group"]
+                lines.append(f"  # {group}")
+            value, change, dirv = fw.change_text(a)
+            st = "" if a["status"] == "確定" else f", status: {a['status']}"
+            lines.append(f'  - {{ key: {a["key"]}, group: {a["group"]}, label: "{a["label"]}", value: "{value}", '
+                         f'change: "{change}", dir: {dirv}{st}, note: "" }}')
+        return "\n".join(lines) + "\n", True
+    for key, group, label in FALLBACK_KEYS:
+        lines.append(f'  - {{ key: {key}, group: {group}, label: "{label}", value: "", change: "", dir: flat, '
+                     f'status: 未確認, note: "" }}')
+    return "\n".join(lines) + "\n", False
 
 
 def main():
@@ -169,9 +234,14 @@ def main():
         lines.append(f'  - date: "{d.isoformat()}"   # {WD[d.weekday()]}')
         lines.append('    items:')
         lines.append('      - { label: "", key: false }')
+        if i == 4:
+            # 週次の「ポジションとフロー」の材料。毎週金曜（米国の祝日は翌営業日）に出る
+            lines.append('      - { label: "CFTC建玉（COT）の公表（火曜時点）", key: false }')
     schedule = "\n".join(lines) + "\n\n"
 
+    performance, prefilled = performance_lines(f"{year}-w{week:02d}")
     body = TEMPLATE.format(
+        performance=performance,
         year=year,
         week=week,
         start=monday.isoformat(),
@@ -189,6 +259,10 @@ def main():
     print(f"  {year}年 第{week}週")
     print(f"  対象期間: {monday}（{WD[monday.weekday()]}）〜 {friday}（{WD[friday.weekday()]}）")
     print(f"  来週の枠: {nw_mon} 〜 {nw_mon + datetime.timedelta(days=4)}")
+    if prefilled:
+        print(f"  performance: {DATA / f'{year}-w{week:02d}.json'} の取得値を入れました。note だけを書く")
+    else:
+        print("  注意: 取得値がありません。先に python tools/fetch-weekly.py --write を実行し、雛形を作り直してください")
 
     # その週の日次レポートが何本あるか。少なければ週次を書く材料が足りない
     if REPORTS.is_dir():

@@ -4,7 +4,7 @@ import sitemap from '@astrojs/sitemap';
 import { unified } from '@astrojs/markdown-remark';
 import fs from 'node:fs';
 import path from 'node:path';
-import { IS_PUBLIC, SITE_URL } from './src/config.ts';
+import { IS_PUBLIC, SITE_URL, TOPICS } from './src/config.ts';
 import { remarkStrongFix } from './src/remark-strong-fix.mjs';
 import { remarkFlow } from './src/remark-flow.mjs';
 import { remarkFigures } from './src/remark-figures.mjs';
@@ -27,6 +27,29 @@ function unlistedPaths(dir, prefix) {
     .map((f) => `${prefix}/${f.replace(/\.md$/, '')}`);
 }
 
+/**
+ * TOPICS に説明文を用意したトピックは記事が0件でもページが立ち、そのあいだは noindex になる
+ * （src/pages/topics/[tag].astro）。同じ条件でサイトマップからも外す。
+ * スラッグの作り方は src/lib/content.ts の tagSlug と同じ
+ */
+function emptyTopicPaths() {
+  const slug = (t) => t.trim().toLowerCase().replace(/[\/\\\s]+/g, '-').replace(/[?#%&]/g, '');
+  const used = new Set();
+  for (const dir of ['./src/content/reports', './src/content/weekly']) {
+    if (!fs.existsSync(dir)) continue;
+    for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.md') && !x.startsWith('_'))) {
+      const fm = fs.readFileSync(path.join(dir, f), 'utf-8').split('---')[1] ?? '';
+      if (/^draft:\s*true\s*$/m.test(fm)) continue;
+      const m = fm.match(/^tags:\s*\[(.*)\]\s*$/m);
+      for (const t of m ? m[1].matchAll(/"([^"]+)"/g) : []) used.add(slug(t[1]));
+    }
+  }
+  return Object.keys(TOPICS)
+    .map(slug)
+    .filter((s) => !used.has(s))
+    .map((s) => `/topics/${s}`);
+}
+
 // 管理画面はサイトマップに載せない。恒久 noindex なので、
 // 載せると Search Console がエラーを出す
 const ALWAYS_EXCLUDED = ['/admin'];
@@ -35,6 +58,7 @@ const excluded = [
   ...ALWAYS_EXCLUDED,
   ...unlistedPaths('./src/content/reports', '/reports'),
   ...unlistedPaths('./src/content/weekly', '/weekly'),
+  ...emptyTopicPaths(),
 ];
 
 export default defineConfig({
@@ -44,7 +68,7 @@ export default defineConfig({
     ? [
         sitemap({
           filter: (page) =>
-            !excluded.includes(new URL(page).pathname.replace(/\/$/, '')),
+            !excluded.includes(decodeURIComponent(new URL(page).pathname).replace(/\/$/, '')),
           // lastmod を出さないと Search Console が更新日を推定できない
           lastmod: new Date(),
           changefreq: 'daily',

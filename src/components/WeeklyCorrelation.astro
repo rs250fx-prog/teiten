@@ -1,0 +1,79 @@
+---
+/**
+ * 週次相関。金の週間変化率と、実質金利・ドル指数・Nasdaq・BTC の週間変化の相関（直近8週）。
+ *
+ * 「金は実質金利とドルで動く」という教科書の関係が、いま効いているかを週ごとに確かめる。
+ * 8週は短く、1週の大きな動きで符号が変わる。**因果ではなく、同じ向きに動いたかだけを示す。**
+ * 数値は src/data/weekly/<slug>.json（tools/fetch-weekly.py）から描く。
+ */
+import { fixed, type WeeklyData } from '../lib/weekly';
+
+interface Props {
+  data?: WeeklyData['correlation'];
+}
+const { data } = Astro.props;
+const pairs = (data?.pairs ?? []).filter((p) => p.r != null);
+
+const word = (r: number) =>
+  Math.abs(r) < 0.2 ? 'ほぼ無関係' : Math.abs(r) < 0.5 ? (r > 0 ? '弱い順相関' : '弱い逆相関') : r > 0 ? '順相関' : '逆相関';
+---
+
+{pairs.length > 0 && (
+  <section class="corr" aria-label="週次相関">
+    <div class="sec-head">
+      <h2>週次相関</h2>
+      <span class="spacer"></span>
+      <span class="num">直近{data!.window}週</span>
+    </div>
+    <ul>
+      {pairs.map((p) => (
+        <li>
+          <span class="k">金 × {p.label}</span>
+          <span class="meter" role="img" aria-label={`相関係数 ${fixed(p.r!, 2)}`}>
+            <span class="mid"></span>
+            <span
+              class:list={['fill', p.r! >= 0 ? 'pos' : 'neg']}
+              style={p.r! >= 0 ? `left:50%;width:${p.r! * 50}%` : `right:50%;width:${-p.r! * 50}%`}
+            ></span>
+          </span>
+          <span class="v">{p.r! > 0 ? '+' : p.r! < 0 ? '−' : ''}{fixed(Math.abs(p.r!), 2)}</span>
+          <span class="w">{word(p.r!)}</span>
+        </li>
+      ))}
+    </ul>
+    <p class="src">
+      {data!.base}と、各指標の週間変化（実質金利は bp、ほかは変化率）の相関係数。−1 は逆向き、+1 は同じ向きにそろって動いたことを示す。
+      8週は短く、1週の大きな動きで符号が変わる。因果関係は示さない。{data!.source}
+    </p>
+  </section>
+)}
+
+<style>
+  .corr { margin: 10px 0 44px; }
+  ul { list-style: none; }
+  li {
+    display: grid;
+    grid-template-columns: 170px minmax(0, 1fr) 54px 92px;
+    gap: 14px;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  li > * { min-width: 0; }
+  li:last-child { border-bottom: 0; }
+  .k { font-family: var(--sa); font-size: 12.5px; color: var(--muted); }
+  .meter { position: relative; height: 10px; background: var(--surface-2); border-radius: 5px; overflow: hidden; }
+  .mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--line-2); }
+  .fill { position: absolute; top: 0; bottom: 0; }
+  .fill.pos { background: var(--accent); }
+  .fill.neg { background: var(--down); }
+  .v { font-family: var(--sa); font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; }
+  .w { font-size: 12.5px; color: var(--ink-2); }
+  .src { font-size: 12px; line-height: 1.8; color: var(--muted); margin-top: 10px; }
+  @media (max-width: 760px) {
+    li { grid-template-columns: minmax(0, 1fr) 54px; gap: 6px 12px; }
+    .k { grid-column: 1 / -1; }
+    .meter { grid-column: 1; }
+    .w { grid-column: 1 / -1; }
+  }
+</style>

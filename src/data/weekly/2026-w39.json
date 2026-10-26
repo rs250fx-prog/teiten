@@ -1,0 +1,791 @@
+{
+ "slug": "2026-w39",
+ "start": "2026-09-21",
+ "end": "2026-09-25",
+ "fetched": "2026-10-27 00:42 JST",
+ "assets": [
+  {
+   "key": "xau",
+   "label": "金（XAU/USD）",
+   "group": "metals",
+   "digits": 2,
+   "unit": "%",
+   "close": 4285.28,
+   "asof": "2026-09-25",
+   "prev": 4377.93,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "USAGOLD 価格履歴（現物、山岳部時間15:00）"
+  },
+  {
+   "key": "xag",
+   "label": "銀（XAG/USD）",
+   "group": "metals",
+   "digits": 3,
+   "unit": "%",
+   "close": 64.24500274658203,
+   "asof": "2026-09-25",
+   "prev": 66.55599975585938,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "Yahoo Finance SI=F（日足終値・清算値）",
+   "note": "限月を特定できない。前週比が限月をまたいでいる可能性がある"
+  },
+  {
+   "key": "xpt",
+   "label": "プラチナ（XPT/USD）",
+   "group": "metals",
+   "digits": 2,
+   "unit": "%",
+   "close": 1774.699951171875,
+   "asof": "2026-09-25",
+   "prev": 1803.5,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "Yahoo Finance PL=F（日足終値・清算値）",
+   "note": "限月を特定できない。前週比が限月をまたいでいる可能性がある"
+  },
+  {
+   "key": "xaujpy",
+   "label": "円建て金（XAU/JPY）",
+   "group": "metals",
+   "digits": 0,
+   "unit": "%",
+   "source": "算出：金（USAGOLD）× ドル円（ニューヨーク17時）",
+   "close": null,
+   "prev": null,
+   "status": "未確認"
+  },
+  {
+   "key": "us2y",
+   "label": "米2年債利回り",
+   "group": "rates",
+   "digits": 2,
+   "unit": "bp",
+   "close": 4.81,
+   "asof": "2026-09-25",
+   "prev": 4.76,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "米財務省 Daily Treasury nominal Yield Curve（2 Yr）"
+  },
+  {
+   "key": "us10y",
+   "label": "米10年債利回り",
+   "group": "rates",
+   "digits": 2,
+   "unit": "bp",
+   "close": 5.17,
+   "asof": "2026-09-25",
+   "prev": 5.01,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "米財務省 Daily Treasury nominal Yield Curve（10 Yr）"
+  },
+  {
+   "key": "us2s10s",
+   "label": "米2-10年スプレッド",
+   "group": "rates",
+   "digits": 2,
+   "unit": "bp",
+   "source": "算出：米10年債 − 米2年債（米財務省）",
+   "close": 0.3600000000000003,
+   "prev": 0.25,
+   "asof": "2026-09-25",
+   "status": "確定"
+  },
+  {
+   "key": "real10",
+   "label": "実質金利（TIPS10年）",
+   "group": "rates",
+   "digits": 2,
+   "unit": "bp",
+   "close": 2.83,
+   "asof": "2026-09-25",
+   "prev": 2.68,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "米財務省 Daily Treasury real Yield Curve（10 YR）"
+  },
+  {
+   "key": "bei10",
+   "label": "期待インフレ（10年BEI）",
+   "group": "rates",
+   "digits": 2,
+   "unit": "bp",
+   "close": 2.34,
+   "asof": "2026-09-25",
+   "prev": 2.33,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "FRED T10YIE"
+  },
+  {
+   "key": "jgb10",
+   "label": "日本10年債利回り",
+   "group": "rates",
+   "digits": 3,
+   "unit": "bp",
+   "close": 3.071,
+   "asof": "2026-09-25",
+   "prev": 2.981,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "財務省 国債金利情報"
+  },
+  {
+   "key": "dxy",
+   "label": "ドル指数 DXY",
+   "group": "fx",
+   "digits": 2,
+   "unit": "%",
+   "close": 100.97000122070312,
+   "asof": "2026-09-25",
+   "prev": 100.22000122070312,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "Yahoo Finance DX-Y.NYB（日足終値・清算値）"
+  },
+  {
+   "key": "usdjpy",
+   "label": "USD/JPY",
+   "group": "fx",
+   "digits": 2,
+   "unit": "%",
+   "close": null,
+   "prev": null,
+   "status": "未確認",
+   "source": "",
+   "error": "週末の値か前週末の値がありません"
+  },
+  {
+   "key": "eurusd",
+   "label": "EUR/USD",
+   "group": "fx",
+   "digits": 4,
+   "unit": "%",
+   "close": null,
+   "prev": null,
+   "status": "未確認",
+   "source": "",
+   "error": "週末の値か前週末の値がありません"
+  },
+  {
+   "key": "wti",
+   "label": "WTI原油",
+   "group": "commodities",
+   "digits": 2,
+   "unit": "%",
+   "close": 92.41000366210938,
+   "asof": "2026-09-25",
+   "prev": 100.30000305175781,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "Yahoo Finance CL=F（日足終値・清算値）",
+   "note": "限月を特定できない。前週比が限月をまたいでいる可能性がある"
+  },
+  {
+   "key": "brent",
+   "label": "Brent原油",
+   "group": "commodities",
+   "digits": 2,
+   "unit": "%",
+   "close": 104.31999969482422,
+   "asof": "2026-09-25",
+   "prev": 103.87000274658203,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "Yahoo Finance BZ=F（日足終値・清算値）",
+   "note": "限月を特定できない。前週比が限月をまたいでいる可能性がある"
+  },
+  {
+   "key": "copper",
+   "label": "銅（COMEX）",
+   "group": "commodities",
+   "digits": 4,
+   "unit": "%",
+   "close": 6.695499897003174,
+   "asof": "2026-09-25",
+   "prev": 6.614999771118164,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "Yahoo Finance HG=F（日足終値・清算値）",
+   "note": "限月を特定できない。前週比が限月をまたいでいる可能性がある"
+  },
+  {
+   "key": "spx",
+   "label": "S&P 500",
+   "group": "equities",
+   "digits": 2,
+   "unit": "%",
+   "close": 7743.41015625,
+   "asof": "2026-09-25",
+   "prev": 7650.5,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "Yahoo Finance ^GSPC（日足終値・清算値）"
+  },
+  {
+   "key": "ndx",
+   "label": "Nasdaq総合",
+   "group": "equities",
+   "digits": 2,
+   "unit": "%",
+   "close": 27068.720703125,
+   "asof": "2026-09-25",
+   "prev": 26522.5390625,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "Yahoo Finance ^IXIC（日足終値・清算値）"
+  },
+  {
+   "key": "dji",
+   "label": "ダウ平均",
+   "group": "equities",
+   "digits": 2,
+   "unit": "%",
+   "close": 51828.62109375,
+   "asof": "2026-09-25",
+   "prev": 51682.640625,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "Yahoo Finance ^DJI（日足終値・清算値）"
+  },
+  {
+   "key": "n225",
+   "label": "日経225",
+   "group": "equities",
+   "digits": 2,
+   "unit": "%",
+   "close": 66364.203125,
+   "asof": "2026-09-25",
+   "prev": 65018.94921875,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "Yahoo Finance ^N225（日足終値・清算値）"
+  },
+  {
+   "key": "btc",
+   "label": "BTC/USD",
+   "group": "crypto",
+   "digits": 0,
+   "unit": "%",
+   "close": 84377.96508359577,
+   "asof": "2026-09-25",
+   "prev": 76371.3617203135,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "CoinGecko 日次（UTC 0:00）"
+  },
+  {
+   "key": "vix",
+   "label": "VIX",
+   "group": "vol",
+   "digits": 2,
+   "unit": "%",
+   "close": 14.869999885559082,
+   "asof": "2026-09-25",
+   "prev": 14.8100004196167,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "Yahoo Finance ^VIX（日足終値・清算値）"
+  },
+  {
+   "key": "nkvi",
+   "label": "日経VI",
+   "group": "vol",
+   "digits": 2,
+   "unit": "%",
+   "close": 20.299999237060547,
+   "asof": "2026-09-25",
+   "prev": 24.229999542236328,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "Yahoo Finance ^NKVI.OS（日足終値・清算値）"
+  },
+  {
+   "key": "move",
+   "label": "MOVE指数",
+   "group": "vol",
+   "digits": 2,
+   "unit": "%",
+   "close": 96.0,
+   "asof": "2026-09-25",
+   "prev": 80.63999938964844,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "Yahoo Finance ^MOVE（日足終値・清算値）"
+  },
+  {
+   "key": "hy",
+   "label": "米HYスプレッド",
+   "group": "credit",
+   "digits": 2,
+   "unit": "bp",
+   "close": 2.93,
+   "asof": "2026-09-25",
+   "prev": 2.68,
+   "prev_asof": "2026-09-18",
+   "status": "確定",
+   "source": "FRED BAMLH0A0HYM2"
+  }
+ ],
+ "ratios": [
+  {
+   "key": "gold_silver",
+   "label": "金/銀",
+   "digits": 2,
+   "gloss": "金が銀の何倍か。上がる週は不安の買い、下がる週は商品全体の買い",
+   "value": 67.2613,
+   "prev": 66.4839,
+   "history": [
+    {
+     "week_end": "2026-05-15",
+     "value": 59.1218
+    },
+    {
+     "week_end": "2026-05-22",
+     "value": 59.5997
+    },
+    {
+     "week_end": "2026-05-29",
+     "value": 60.7411
+    },
+    {
+     "week_end": "2026-06-05",
+     "value": 63.3175
+    },
+    {
+     "week_end": "2026-06-12",
+     "value": 62.4648
+    },
+    {
+     "week_end": "2026-06-19",
+     "value": 64.0842
+    },
+    {
+     "week_end": "2026-06-26",
+     "value": 69.1744
+    },
+    {
+     "week_end": "2026-07-03",
+     "value": 68.0326
+    },
+    {
+     "week_end": "2026-07-10",
+     "value": 68.7806
+    },
+    {
+     "week_end": "2026-07-17",
+     "value": 71.7156
+    },
+    {
+     "week_end": "2026-07-24",
+     "value": 69.4013
+    },
+    {
+     "week_end": "2026-07-31",
+     "value": 71.3132
+    },
+    {
+     "week_end": "2026-08-07",
+     "value": 69.4704
+    },
+    {
+     "week_end": "2026-08-14",
+     "value": 68.2788
+    },
+    {
+     "week_end": "2026-08-21",
+     "value": 67.3797
+    },
+    {
+     "week_end": "2026-08-28",
+     "value": 67.6155
+    },
+    {
+     "week_end": "2026-09-04",
+     "value": 67.779
+    },
+    {
+     "week_end": "2026-09-11",
+     "value": 68.2979
+    },
+    {
+     "week_end": "2026-09-18",
+     "value": 66.4839
+    },
+    {
+     "week_end": "2026-09-25",
+     "value": 67.2613
+    }
+   ],
+   "source": "算出：COMEX 金先物（GC=F）÷ SI=F（Yahoo Finance、各週の最後の取引日）"
+  },
+  {
+   "key": "gold_oil",
+   "label": "金/原油",
+   "digits": 2,
+   "gloss": "金1オンスで買える原油の量（バレル）。上がる週は景気の不安、下がる週はインフレ・供給の材料",
+   "value": 46.7612,
+   "prev": 44.1166,
+   "history": [
+    {
+     "week_end": "2026-05-15",
+     "value": 43.2736
+    },
+    {
+     "week_end": "2026-05-22",
+     "value": 46.824
+    },
+    {
+     "week_end": "2026-05-29",
+     "value": 52.5755
+    },
+    {
+     "week_end": "2026-06-05",
+     "value": 48.214
+    },
+    {
+     "week_end": "2026-06-12",
+     "value": 49.9387
+    },
+    {
+     "week_end": "2026-06-19",
+     "value": 55.4295
+    },
+    {
+     "week_end": "2026-06-26",
+     "value": 59.1694
+    },
+    {
+     "week_end": "2026-07-03",
+     "value": 60.0626
+    },
+    {
+     "week_end": "2026-07-10",
+     "value": 57.6068
+    },
+    {
+     "week_end": "2026-07-17",
+     "value": 48.7186
+    },
+    {
+     "week_end": "2026-07-24",
+     "value": 45.5806
+    },
+    {
+     "week_end": "2026-07-31",
+     "value": 48.506
+    },
+    {
+     "week_end": "2026-08-07",
+     "value": 56.2765
+    },
+    {
+     "week_end": "2026-08-14",
+     "value": 53.8507
+    },
+    {
+     "week_end": "2026-08-21",
+     "value": 53.7629
+    },
+    {
+     "week_end": "2026-08-28",
+     "value": 54.3153
+    },
+    {
+     "week_end": "2026-09-04",
+     "value": 48.9353
+    },
+    {
+     "week_end": "2026-09-11",
+     "value": 44.067
+    },
+    {
+     "week_end": "2026-09-18",
+     "value": 44.1166
+    },
+    {
+     "week_end": "2026-09-25",
+     "value": 46.7612
+    }
+   ],
+   "source": "算出：COMEX 金先物（GC=F）÷ CL=F（Yahoo Finance、各週の最後の取引日）"
+  },
+  {
+   "key": "gold_copper",
+   "label": "金/銅",
+   "digits": 0,
+   "gloss": "金と景気の代理（銅）の比。上がる週は景気への不安、下がる週は景気への期待",
+   "value": 645.3887,
+   "prev": 668.9191,
+   "history": [
+    {
+     "week_end": "2026-05-15",
+     "value": 729.7288
+    },
+    {
+     "week_end": "2026-05-22",
+     "value": 713.2135
+    },
+    {
+     "week_end": "2026-05-29",
+     "value": 722.2266
+    },
+    {
+     "week_end": "2026-06-05",
+     "value": 696.9425
+    },
+    {
+     "week_end": "2026-06-12",
+     "value": 659.1711
+    },
+    {
+     "week_end": "2026-06-19",
+     "value": 666.0758
+    },
+    {
+     "week_end": "2026-06-26",
+     "value": 666.9869
+    },
+    {
+     "week_end": "2026-07-03",
+     "value": 674.7404
+    },
+    {
+     "week_end": "2026-07-10",
+     "value": 659.9343
+    },
+    {
+     "week_end": "2026-07-17",
+     "value": 646.1094
+    },
+    {
+     "week_end": "2026-07-24",
+     "value": 644.1139
+    },
+    {
+     "week_end": "2026-07-31",
+     "value": 638.1293
+    },
+    {
+     "week_end": "2026-08-07",
+     "value": 669.6142
+    },
+    {
+     "week_end": "2026-08-14",
+     "value": 672.3691
+    },
+    {
+     "week_end": "2026-08-21",
+     "value": 711.3914
+    },
+    {
+     "week_end": "2026-08-28",
+     "value": 690.3231
+    },
+    {
+     "week_end": "2026-09-04",
+     "value": 678.5812
+    },
+    {
+     "week_end": "2026-09-11",
+     "value": 681.49
+    },
+    {
+     "week_end": "2026-09-18",
+     "value": 668.9191
+    },
+    {
+     "week_end": "2026-09-25",
+     "value": 645.3887
+    }
+   ],
+   "source": "算出：COMEX 金先物（GC=F）÷ HG=F（Yahoo Finance、各週の最後の取引日）"
+  }
+ ],
+ "ranges": [
+  {
+   "label": "金（COMEX 先物）",
+   "high": 4422.1,
+   "low": 4278.3,
+   "open": 4413.0,
+   "close": 4321.2,
+   "digits": 1,
+   "source": "Yahoo Finance GC=F（日足）"
+  },
+  {
+   "label": "銀（COMEX 先物）",
+   "high": 66.665,
+   "low": 63.0,
+   "open": 66.44,
+   "close": 64.245,
+   "digits": 3,
+   "source": "Yahoo Finance SI=F（日足）"
+  },
+  {
+   "label": "USD/JPY",
+   "status": "未確認",
+   "error": "足がありません"
+  }
+ ],
+ "cot": [
+  {
+   "label": "金（COMEX）",
+   "who": "マネージド・マネー",
+   "history": [
+    {
+     "date": "2026-09-01",
+     "net": 136771
+    },
+    {
+     "date": "2026-09-08",
+     "net": 134972
+    },
+    {
+     "date": "2026-09-15",
+     "net": 133116
+    },
+    {
+     "date": "2026-09-22",
+     "net": 127389
+    }
+   ],
+   "status": "確定",
+   "source": "CFTC Commitments of Traders（火曜時点、金曜公表）"
+  },
+  {
+   "label": "銀（COMEX）",
+   "who": "マネージド・マネー",
+   "history": [
+    {
+     "date": "2026-09-01",
+     "net": 12598
+    },
+    {
+     "date": "2026-09-08",
+     "net": 14386
+    },
+    {
+     "date": "2026-09-15",
+     "net": 13124
+    },
+    {
+     "date": "2026-09-22",
+     "net": 13309
+    }
+   ],
+   "status": "確定",
+   "source": "CFTC Commitments of Traders（火曜時点、金曜公表）"
+  },
+  {
+   "label": "WTI原油（NYMEX）",
+   "who": "マネージド・マネー",
+   "history": [
+    {
+     "date": "2026-09-01",
+     "net": 94281
+    },
+    {
+     "date": "2026-09-08",
+     "net": 111731
+    },
+    {
+     "date": "2026-09-15",
+     "net": 106279
+    },
+    {
+     "date": "2026-09-22",
+     "net": 101828
+    }
+   ],
+   "status": "確定",
+   "source": "CFTC Commitments of Traders（火曜時点、金曜公表）"
+  },
+  {
+   "label": "円（CME）",
+   "who": "レバレッジド・ファンド",
+   "history": [
+    {
+     "date": "2026-09-01",
+     "net": -102188
+    },
+    {
+     "date": "2026-09-08",
+     "net": -49098
+    },
+    {
+     "date": "2026-09-15",
+     "net": 23170
+    },
+    {
+     "date": "2026-09-22",
+     "net": 7423
+    }
+   ],
+   "status": "確定",
+   "source": "CFTC Commitments of Traders（火曜時点、金曜公表）"
+  }
+ ],
+ "btc_etf": {
+  "status": "未確認",
+  "days": []
+ },
+ "fedwatch": {
+  "status": "確定",
+  "effr": 3.88,
+  "effr_asof": "2026-09-25",
+  "meetings": [
+   {
+    "meeting": "2026-10-28",
+    "contract": "ZQX26.CBT",
+    "pre": 3.88,
+    "post": 4.035,
+    "move_bp": 15.5,
+    "hikes": 0.62
+   },
+   {
+    "meeting": "2026-12-09",
+    "contract": "ZQZ26.CBT",
+    "pre": 4.035,
+    "post": 4.239,
+    "move_bp": 20.4,
+    "hikes": 0.82
+   }
+  ],
+  "source": "算出：CBOT FF金利先物（Yahoo Finance）と FRED EFFR。CME FedWatch の値そのものではない"
+ },
+ "correlation": {
+  "status": "確定",
+  "window": 8,
+  "pairs": [
+   {
+    "label": "実質金利（TIPS10年）",
+    "r": -0.68,
+    "n": 8,
+    "unit": "週間の変化（bp）"
+   },
+   {
+    "label": "ドル指数 DXY",
+    "r": -0.57,
+    "n": 8,
+    "unit": "週間の変化率"
+   },
+   {
+    "label": "Nasdaq総合",
+    "r": 0.26,
+    "n": 8,
+    "unit": "週間の変化率"
+   },
+   {
+    "label": "BTC/USD",
+    "r": 0.04,
+    "n": 8,
+    "unit": "週間の変化率（金曜 UTC 0:00）"
+   }
+  ],
+  "base": "金（COMEX 先物 GC=F）の週間変化率",
+  "source": "算出：Yahoo Finance・FRED DFII10・CoinGecko。各週の最後の取引日どうしの変化"
+ }
+}

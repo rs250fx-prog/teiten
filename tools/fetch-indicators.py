@@ -42,6 +42,8 @@ SERIES = [
     ("DGS2", "米2年債利回り", "%", 2),
     ("SP500", "S&P 500", "", 1),
     ("T10YIE", "期待インフレ率（10年BEI）", "%", 2),
+    # 2026-10-27 追加。株安が「ローテーション」か「本当のリスクオフ」かの判別に使う
+    ("BAMLH0A0HYM2", "米ハイイールド債スプレッド（ICE BofA OAS）", "%", 2),
 ]
 
 URL = "https://fred.stlouisfed.org/graph/fredgraph.csv?id={}"
@@ -138,10 +140,11 @@ def main() -> int:
     print("\n金（XAU/USD 現物）は USAGOLD の価格履歴から取る（tools/fetch-gold.py）：")
     run_sibling("fetch-gold.py")
 
-    print("\nDXY・日経225・日経VI・原油・米株価指数の日足終値と、ドル円・ユーロドルのNY17時の値（tools/fetch-market.py）：")
+    print("\nDXY・日経225・日経VI・原油・米株価指数・銀・プラチナ・銅・MOVEの日足終値と、ドル円・ユーロドルのNY17時の値（tools/fetch-market.py）：")
     run_sibling("fetch-market.py")
 
-    print("\nBTC・日本10年債はここに無い。取得元は docs/SOURCES.md を参照。")
+    print("\n日本10年債（財務省）・BTC（CoinGecko UTC 0:00）・BTC現物ETFフロー（Farside）（tools/fetch-extra.py）：")
+    run_sibling("fetch-extra.py")
     return 0
 
 

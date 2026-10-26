@@ -1,0 +1,137 @@
+---
+/**
+ * 週のレシオ（金/銀・金/原油・金/銅）。
+ *
+ * 金単独の値動きでは「金固有の買い（不安）」か「商品全体の買い」かが分からない。
+ * 他の商品との比を週ごとに並べると切り分けられる。週次でしか出さない固有の指標。
+ *
+ * 数値は src/data/weekly/<slug>.json（tools/fetch-weekly.py）から描く。
+ * frontmatter の ratioNotes は一言の読みだけを持つ。
+ */
+import { fixed, signed, dirOf, type Ratio } from '../lib/weekly';
+
+interface Props {
+  ratios: Ratio[];
+  notes: Record<string, string>;
+}
+const { ratios, notes } = Astro.props;
+const shown = ratios.filter((r) => r.value != null);
+
+const W = 260;
+const H = 56;
+function spark(r: Ratio) {
+  const vs = r.history.map((h) => h.value);
+  if (vs.length < 2) return null;
+  const lo = Math.min(...vs);
+  const hi = Math.max(...vs);
+  const span = hi - lo || 1;
+  const pts = vs.map((v, i) => [
+    (i / (vs.length - 1)) * (W - 8) + 4,
+    H - 6 - ((v - lo) / span) * (H - 12),
+  ]);
+  return {
+    d: pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(''),
+    last: pts[pts.length - 1],
+    lo,
+    hi,
+    n: vs.length,
+  };
+}
+const md = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`;
+---
+
+{shown.length > 0 && (
+  <section class="ratios" aria-label="週のレシオ">
+    <div class="sec-head">
+      <h2>週のレシオ</h2>
+      <span class="spacer"></span>
+      <span class="num">直近{Math.max(...shown.map((r) => r.history.length))}週</span>
+    </div>
+    <div class="cards">
+      {shown.map((r) => {
+        const s = spark(r);
+        const ch = r.prev != null ? r.value! - r.prev : null;
+        return (
+          <article class="card">
+            <div class="top">
+              <h3>{r.label}</h3>
+              <span class="v">{fixed(r.value!, r.digits)}</span>
+              {ch != null && <span class:list={['c', dirOf(ch)]}>{signed(ch, r.digits)}</span>}
+            </div>
+            {s && (
+              <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${r.label}の直近${s.n}週の推移。最小${fixed(s.lo, r.digits)}、最大${fixed(s.hi, r.digits)}`}>
+                <path d={s.d} fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linejoin="round" />
+                <circle cx={s.last[0]} cy={s.last[1]} r="3" fill="var(--accent)" />
+              </svg>
+            )}
+            {s && (
+              <div class="axis">
+                <span>{md(r.history[0].week_end)}</span>
+                <span>幅 {fixed(s.lo, r.digits)}〜{fixed(s.hi, r.digits)}</span>
+                <span>{md(r.history[r.history.length - 1].week_end)}</span>
+              </div>
+            )}
+            {notes[r.key] && <p class="read">{notes[r.key]}</p>}
+            <p class="gloss">{r.gloss}</p>
+          </article>
+        );
+      })}
+    </div>
+    <p class="src">
+      いずれも COMEX 金先物（GC=F）と、銀（SI=F）・WTI原油（CL=F）・銅（HG=F、ドル/ポンド）の期近先物の比。各週の最後の取引日の値（Yahoo Finance）から算出。
+      期近の限月が替わる週は、比が限月をまたぐ。
+    </p>
+  </section>
+)}
+
+<style>
+  .ratios { margin: 10px 0 44px; }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .card {
+    min-width: 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 16px 16px 14px;
+  }
+  .top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  h3 {
+    font-family: var(--sa);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: .06em;
+    color: var(--muted);
+    flex-basis: 100%;
+  }
+  .v {
+    font-family: var(--sa);
+    font-size: 22px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .c { font-family: var(--sa); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .c.up { color: var(--up); }
+  .c.down { color: var(--down); }
+  .c.flat { color: var(--muted); }
+  svg { display: block; width: 100%; height: auto; margin-top: 8px; }
+  .axis {
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+    font-family: var(--sa);
+    font-size: 10.5px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .read { font-size: 14px; line-height: 1.8; color: var(--ink); margin-top: 10px; }
+  .gloss { font-size: 12.5px; line-height: 1.7; color: var(--muted); margin-top: 8px; }
+  .src { font-size: 12px; line-height: 1.8; color: var(--muted); margin-top: 10px; }
+
+  @media (max-width: 760px) {
+    .cards { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>

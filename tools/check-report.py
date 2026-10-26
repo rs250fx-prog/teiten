@@ -35,6 +35,12 @@ REVIEW_SINCE = "2026-09-30"
 # note 用サムネイルの文言（thumb）を求め始めた号。それより前は手作業で作っていた
 THUMB_SINCE = "2026-10-05"
 THUMB_SINCE_WEEKLY = "2026-w41"
+# 週次の銘柄拡充（2026-10-27）。この週から tools/fetch-weekly.py の JSON と、Phase 1 の銘柄を求める
+EXPANDED_SINCE_WEEKLY = "2026-w44"
+WEEKLY_DATA = Path("src/data/weekly")
+# 週次の performance に必ず置く銘柄（fetch-weekly.py の key）。取れなければ status: 未確認 で残す
+WEEKLY_KEYS = ["xau", "xag", "xpt", "xaujpy", "us2y", "us10y", "us2s10s", "real10", "jgb10",
+               "dxy", "usdjpy", "eurusd", "wti", "copper", "spx", "ndx", "n225", "btc", "vix", "move", "hy"]
 WD = "月火水木金土日"
 
 errors = []
@@ -243,6 +249,73 @@ def check(p, seen_no):
         warn(p, "draft: true です。公開されません")
 
 
+def performance_rows(fm):
+    """performance の各行を {欄: 値} で返す。欄の順は問わない（key / group / status を足したため）"""
+    m = re.search(r'^performance:\s*$(.*?)(?=^\S)', fm, re.M | re.S)
+    if not m:
+        return []
+    rows = []
+    for line in re.findall(r'^\s*-\s*\{(.*)\}\s*$', m.group(1), re.M):
+        row = {}
+        for k, v in re.findall(r'(\w+):\s*("(?:[^"\\]|\\.)*"|[^,}]+)', line):
+            row[k] = v.strip().strip('"')
+        rows.append(row)
+    return rows
+
+
+_fw = None
+
+
+def change_text(asset):
+    """fetch-weekly.py と同じ書式で (value, change, dir) を出す。書式を2か所に持たないため借りる"""
+    global _fw
+    if _fw is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("fetch_weekly", Path(__file__).with_name("fetch-weekly.py"))
+        _fw = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(_fw)
+    return _fw.change_text(asset)
+
+
+def check_weekly_data(p, perf, fm):
+    """src/data/weekly/<slug>.json（機械取得の値）と performance を突き合わせる"""
+    import json
+    path = WEEKLY_DATA / f"{p.stem}.json"
+    expanded = p.stem >= EXPANDED_SINCE_WEEKLY
+    if not path.exists():
+        if expanded:
+            err(p, f"{path} がありません。python tools/fetch-weekly.py {p.stem} --write を実行してください")
+        return
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assets = {a["key"]: a for a in data.get("assets", [])}
+    keys = {r.get("key") for r in perf if r.get("key")}
+    for r in perf:
+        k = r.get("key")
+        if not k:
+            continue
+        a = assets.get(k)
+        if a is None:
+            err(p, f"performance「{r.get('label')}」の key: {k} が JSON にありません")
+            continue
+        if a["status"] == "未確認":
+            if r.get("value") and r.get("status") != "未確認":
+                warn(p, f"performance「{r.get('label')}」はスクリプトで取れなかった値です。出所を本文に書いたか確かめてください")
+            continue
+        value, change, _d = change_text(a)
+        # 数値が JSON と違えば誤記。手で直した値は、スクリプトの値と食い違った理由を本文に書いてからにする
+        if r.get("value") != value or r.get("change") != change:
+            err(p, f"performance「{r.get('label')}」が取得値と違います："
+                   f"記事 {r.get('value')} / {r.get('change')}、取得 {value} / {change}（{a.get('source')}）")
+        if a["status"] == "読み取り" and r.get("status") != "読み取り":
+            err(p, f"performance「{r.get('label')}」は読み取りの値です。status: 読み取り を付ける")
+    if expanded:
+        lack = [k for k in WEEKLY_KEYS if k not in keys]
+        if lack:
+            warn(p, f"performance に無い銘柄があります（取れなくても status: 未確認 で残す）: {', '.join(lack)}")
+        if not re.search(r'^ratioNotes:', fm, re.M):
+            warn(p, "ratioNotes（週のレシオへの一言）がありません")
+
+
 def check_weekly(p, seen_week):
     """週次まとめの検査。日次とは必須項目が違う"""
     text = p.read_text(encoding="utf-8")
@@ -303,18 +376,20 @@ def check_weekly(p, seen_week):
         warn(p, f"description が{len(desc)}字です。80〜100字を目安に")
 
     # ── 週次固有 ───────────────────────────
-    perf = re.findall(
-        r'\{\s*label:\s*"([^"]*)",\s*value:\s*"([^"]*)",\s*change:\s*"([^"]*)",'
-        r'\s*dir:\s*(\w+),\s*note:\s*"([^"]*)"',
-        fm,
-    )
+    perf = performance_rows(fm)
     if len(perf) < 5:
         err(p, f"performance が{len(perf)}件です。主要資産をひととおり（8件前後）")
-    for label, value, _c, dirv, _n in perf:
-        if not value:
-            err(p, f"performance「{label}」の value が空です")
+    for r in perf:
+        label, value, dirv, status = r.get("label", ""), r.get("value", ""), r.get("dir", ""), r.get("status", "確定")
+        if status not in ("確定", "読み取り", "未確認"):
+            err(p, f"performance「{label}」の status が不正です: {status}")
+        if not value and status != "未確認":
+            err(p, f"performance「{label}」の value が空です（取れなかったなら status: 未確認）")
+        if value and status == "未確認":
+            err(p, f"performance「{label}」は status: 未確認 なのに value があります")
         if dirv not in ("up", "down", "flat"):
             err(p, f"performance「{label}」の dir が不正です: {dirv}")
+    check_weekly_data(p, perf, fm)
 
     sched_dates = re.findall(r'^\s*-\s*date:\s*"([\d-]+)"', fm, re.M)
     if not sched_dates:
@@ -395,6 +470,14 @@ def check_weekly(p, seen_week):
 
     if "予想レンジ：上限　　円" in body:
         err(p, "日経の予想レンジが未記入です")
+    for asset in ("金", "銀", "ドル円"):
+        if re.search(rf'^{asset}の予想レンジ：上限　　', body, re.M):
+            err(p, f"{asset}の予想レンジが未記入です")
+    if p.stem >= EXPANDED_SINCE_WEEKLY and "### 金・銀・ドル円の焦点" not in body:
+        warn(p, "「金・銀・ドル円の焦点」の小見出しがありません（予想レンジを3本書く）")
+    for m in re.finditer(r'asset:\s*"([^"]+)"\s*\n\s*levels:\s*\n((?:\s+-\s*\{[^\n]*\}\n?)+)', fm):
+        if not re.search(r'value:\s*"[^"]+"', m.group(2)):
+            err(p, f"moreLevels（{m.group(1)}）の value が全て空です")
 
     bare = re.findall(r'^\s*https?://\S+\s*$', body, re.M)
     if bare:
