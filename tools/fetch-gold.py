@@ -32,6 +32,10 @@ nonce はページの `var ajax = {...}` にある。
   20時に 4,139.99、23時に 4,134.16 だった）。日本時間 8時は山岳部時間の前日 17時なので、
   定期実行が読む最新日のセルはこの「動いている」セルにあたる。翌日になると固まる。
   値には読んだ時点を添え、翌号で固まった値と照合する（FRED の遅れ系列と同じ扱い）
+- **山岳部時間の夕方には、翌日の日付のセルが先に現れる**（10/26 18:34 山岳部時間に 10/27 の
+  セルがあり、10/26 のセルは 17:05 の 4,012.20 から 4,005.63 へ動いていた）。今日以降の日付の
+  セルはすべて読み取りとして出す。動いているセルの「前日比」は前のセルとの差と合わないことがある
+  （10/26 のセルは −11.45 と出たが、10/23 確定値との差は +9.45）。読み取りの前日比は使わず、確定値どうしで出す
 - 日次レポートのページ（/daily-precious-metals-market-report/）は 403 で開けない。
   価格履歴のページとは別物で、こちらは使わない
 - 取れなかったら「未確認」と書く。報道の値で埋めない
@@ -137,16 +141,21 @@ def report(months: int = 1) -> int:
         print("    取れなければ「未確認」と書く。報道の値で埋めない。")
         return 1
 
-    days = sorted(rows)[-2:]
-    if not days:
+    if not rows:
         print("NG  金（XAU/USD）表に値がありません")
         return 1
     now_mt = datetime.now(ZoneInfo("America/Denver"))
-    for d in days:
+    # 山岳部時間の今日以降の日付のセルは、まだ動いている。山岳部時間の夕方には翌日の日付の
+    # セルが先に現れる（10/26 18:34 山岳部時間に 10/27 のセルがあった）。これを「確定値」と
+    # 出していたので、今日以降はすべて読み取りとし、確定値は今日より前の最新の1日だけを出す
+    fixed = [d for d in sorted(rows) if d < now_mt.date()][-1:]
+    moving = [d for d in sorted(rows) if d >= now_mt.date()]
+    for d in fixed + moving:
         v, c = rows[d]
         chg = "" if c is None else f"、前日比 {c:+,.2f}ドル"
-        if d == now_mt.date():
-            when = f"{d.month}/{d.day} {now_mt:%H:%M} 山岳部時間に読み取り。表は同日中は動く"
+        if d in moving:
+            ahead = "。山岳部時間ではまだ前日で、日付が先に進んだセル" if d > now_mt.date() else ""
+            when = f"{d.month}/{d.day} のセルを {now_mt:%m/%d %H:%M} 山岳部時間に読み取り。表は動いている{ahead}"
         else:
             when = f"{d.month}/{d.day} USAGOLD 価格履歴の確定値"
         print(f"  金（XAU/USD 現物）：{v:,.2f}ドル（{when}{chg}）")
