@@ -41,7 +41,7 @@
 | 実効FF金利（FOMC の織り込みの起点。週次のみ） | `EFFR` | 1営業日 |
 
 **週次の米2年・10年債と実質金利は、FRED の原本の米財務省 Daily Treasury Par Yield Curve / Real Yield Curve から取る**
-（`tools/fetch-weekly.py`）。FRED より1営業日早く出るため、土曜の朝に金曜分が揃う。値は FRED の DGS2・DGS10・DFII10 と同じ。
+（`tools/fetch-weekly.py`）。FRED より1営業日早く出るため、土曜14時の週次の実行で金曜分が揃う。値は FRED の DGS2・DGS10・DFII10 と同じ。
 第43週の記事（10年 5.09→5.00%、実質 2.74→2.66%）とも一致した。
 
 ### 遅れの扱い
