@@ -63,6 +63,9 @@ const excluded = [
 
 export default defineConfig({
   site: SITE_URL,
+  // 共通CSS（約17KB）を別ファイルにすると、低速回線ではその1往復ぶん描画が遅れる
+  // （PageSpeed の「レンダリングをブロックするリソース」）。HTMLに埋め込む
+  build: { inlineStylesheets: 'always' },
   // 本公開前はサイトマップを出さない（全ページ noindex のため）
   integrations: IS_PUBLIC
     ? [

@@ -7,24 +7,40 @@ import { GA4_MEASUREMENT_ID } from '../config';
  * 測定IDが空のあいだは何も出力しない。IDを入れた時点で計測が始まり、
  * プライバシーポリシーの GA4 に関する記述も同時に表示される。
  *
- * 読み込みは async にしてレンダリングをブロックさせない。gtag.js は
- * 約50KB あり、外部リクエストを0件にしたページに戻す追加コストなので、
- * 計測が不要になったら ID を空にして落とすこと。
+ * gtag.js（約150KB）は表示が終わってから読む。最初の操作（スクロール・タップ・キー入力）か、
+ * load から5秒後のどちらか早いほう。head で async 読み込みしていたときは、
+ * 低速回線のスマホで本文の描画と帯域・メインスレッドを奪い合い、PageSpeed のモバイルが
+ * 69〜83点（TBT 最大390ms）だった（2026-10-27。fam16 の同じ対策に合わせた）。
+ * dataLayer と gtag() は先に用意するので、読み込み前に積んだイベントも取りこぼさない。
+ * 操作せず5秒以内に離脱した訪問は計測されない（GA4の「エンゲージ」判定は10秒以上なので影響は小さい）。
  */
 const id = GA4_MEASUREMENT_ID;
 ---
 
 {id && (
-  <>
-    <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${id}`}></script>
-    <script is:inline define:vars={{ id }}>
-      window.dataLayer = window.dataLayer || [];
-      // Astro はインラインスクリプトを IIFE で包むため、
-      // window に生やさないと後からイベント計測を足せない
-      window.gtag = function gtag() { window.dataLayer.push(arguments); };
-      window.gtag('js', new Date());
-      // IPの匿名化は GA4 では既定で有効。ここでは明示的な設定のみ行う
-      window.gtag('config', id);
-    </script>
-  </>
+  <script is:inline define:vars={{ id }}>
+    window.dataLayer = window.dataLayer || [];
+    // Astro はインラインスクリプトを IIFE で包むため、
+    // window に生やさないと後からイベント計測を足せない
+    window.gtag = function gtag() { window.dataLayer.push(arguments); };
+    window.gtag('js', new Date());
+    // IPの匿名化は GA4 では既定で有効。ここでは明示的な設定のみ行う
+    window.gtag('config', id);
+
+    const events = ['scroll', 'pointerdown', 'keydown', 'touchstart'];
+    let loaded = false;
+    const load = () => {
+      if (loaded) return;
+      loaded = true;
+      events.forEach((e) => removeEventListener(e, load));
+      const s = document.createElement('script');
+      s.async = true;
+      s.src = `https://www.googletagmanager.com/gtag/js?id=${id}`;
+      document.head.appendChild(s);
+    };
+    events.forEach((e) => addEventListener(e, load, { once: true, passive: true }));
+    const later = () => setTimeout(load, 5000);
+    if (document.readyState === 'complete') later();
+    else addEventListener('load', later, { once: true });
+  </script>
 )}
