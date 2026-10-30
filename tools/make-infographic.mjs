@@ -385,16 +385,21 @@ if (ig.focus) {
     cards.forEach((c, i) => {
       const cx = x0 + i * (cw + gap);
       P.push(rect(cx, top, cw, H, { fill: '#f7fafd' }));
-      P.push(
-        text(c.label, { x: cx + 22, y: top + 40, size: 26, w: 900, fill: C.navy }),
-        text(c.unit ? `（${c.unit}）` : '', { x: cx + 22 + measure(c.label, 26, 900) + 4, y: top + 40, size: 17, w: 500, fill: C.sub }),
-      );
       const fv = Number(c.forecast);
       const av = Number(c.actual);
       const surprise = av > fv ? 'up' : av < fv ? 'down' : 'flat';
       const tag = { up: '上振れ', down: '下振れ', flat: '予想通り' }[surprise];
       const tagC = surprise === 'up' ? C.down : surprise === 'down' ? C.blue : C.flat;
       const tw = measure(tag, 18, 900) + 22;
+      // 見出しは右上の札に重ならない幅まで縮める（compare が2枠＋highlight だと1枠が狭い）
+      const unit = c.unit ? `（${c.unit}）` : '';
+      const labelRoom = cw - 22 - tw - 22 - 10 - measure(unit, 17, 500);
+      const labelSize = Math.min(26, 26 * labelRoom / measure(c.label, 26, 900));
+      if (labelSize < 26 * 0.6) problems.push(`focus.compare ${i + 1} の見出し：長すぎて収まりません「${c.label}」`);
+      P.push(
+        text(c.label, { x: cx + 22, y: top + 40, size: Math.max(labelSize, 26 * 0.6), w: 900, fill: C.navy }),
+        text(unit, { x: cx + 22 + measure(c.label, Math.max(labelSize, 26 * 0.6), 900) + 4, y: top + 40, size: 17, w: 500, fill: C.sub }),
+      );
       P.push(rect(cx + cw - 22 - tw, top + 16, tw, 34, { r: 17, fill: tagC, stroke: null }),
         text(tag, { x: cx + cw - 22 - tw / 2, y: top + 40, size: 18, w: 900, fill: '#fff', anchor: 'middle' }));
       // 棒（0起点。差が小さければ小さく見える）
@@ -408,7 +413,7 @@ if (ig.focus) {
         P.push(
           `<rect x="${bx}" y="${base - bh}" width="${bw}" height="${bh}" rx="4" fill="${col}"/>`,
           text(lab, { x: bx + bw / 2, y: base - bh - 46, size: 17, w: 700, fill: C.sub, anchor: 'middle' }),
-          text(fmt(v, c.suffix), { x: bx + bw / 2, y: base - bh - 12, size: j ? 40 : 30, w: 900, fill: tc, anchor: 'middle' }),
+          text(fmt(v, c.suffix), { x: bx + bw / 2, y: base - bh - 12, size: j ? 40 : 30, w: 900, fill: tc, anchor: 'middle', maxWidth: bw + 30, minScale: 0.4, name: `focus.compare ${i + 1} の${lab}` }),
         );
       });
       P.push(`<line x1="${cx + 20}" x2="${cx + cw - 20}" y1="${base}" y2="${base}" stroke="${C.line}" stroke-width="2"/>`);
