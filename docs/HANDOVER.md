@@ -232,15 +232,17 @@ insight.factset.com
 
 ### 世界の定点（`world`）★設計済み・2026-10-30・ユーザー承認済み
 
-6 つの地域の窓（北米・欧州・ロシア・中国・インド・中東）から金・ドル・米金利の論調を毎週同じ形で観測し、翌週に機械で答え合わせする。
-設計は `docs/SPEC.md` §5「world」、取得元の一覧と収集可否は `docs/research/overseas-market-media-top50.md`。
+6 つの地域の窓（北米・欧州・ロシア・中国・インド・中東）を固定し、各窓を「論調の層」（媒体が金・ドル・米金利をどう読んだか。翌週に機械で答え合わせ）と
+「現物の層」（窓ごとに固定した系列1本。GLD・スイス税関・ロシア中銀・上海プレミアム・インド小売価格差・WGC）の2段で毎週観測する。
+設計は `docs/SPEC.md` §5「world」、媒体の一覧と収集可否は `docs/research/overseas-market-media-top50.md`。
 
-実装の順（SPEC の段階 1）：
-1. `src/content.config.ts` に `world` コレクション（`windows` 6 件固定・`review`）を足す
+実装の順（SPEC の段階 1〜2）：
+1. `src/content.config.ts` に `world` コレクション（`windows` 6 件固定・`physicalNotes`・`review`）を足す
 2. `src/config.ts` に `WORLD_SOURCES`（窓ごとの主／代替の媒体とホスト）と、`NAV` に `/world/` を足す
-3. `src/pages/world/index.astro`・`[...slug].astro`（週次の骨組みを流用。6×3 の論調の分布は新規コンポーネント）
-4. `tools/new-world.py`（雛形）・`tools/review-world.py`（前週の判定）・`check-report.py` の world 検査（6 窓・stance の enum・summary の字数・media のホスト・review の突き合わせ）
-5. 第45週（11/7 土）を手で 1 本作る。定期実行への追加（`docs/ROUTINES.md` 週次の 7-D）は第46週から。**ROUTINES.md とルーティンのプロンプトはまだ触っていない**
+3. `src/pages/world/index.astro`・`[...slug].astro`（週次の骨組みを流用。6×3 の論調の分布と、現物6本の小さな折れ線は新規コンポーネント。JSON が無い週は現物の節を描かない）
+4. `tools/new-world.py`（雛形）・`tools/review-world.py`（前週の判定）・`check-report.py` の world 検査（6 窓・stance の enum・summary の字数・media のホスト・review の突き合わせ・`physicalNotes` のキーが JSON にある窓だけか）
+5. 第45週（11/7 土）を**論調の層だけで**手で 1 本作る。定期実行への追加（`docs/ROUTINES.md` 週次の 7-D）は第46週から。**ROUTINES.md とルーティンのプロンプトはまだ触っていない**
+6. 現物の層：`docs/SOURCES.md` に系列の節を足してから `tools/fetch-world.py --write`（`src/data/world/<slug>.json`）を作る。先に GLD（週次の `flows` と同じ出所）とインド（Goodreturns 24K × USAGOLD の金 × ドルルピー）。上海プレミアム（SGE 基準価格）・スイス税関・ロシア中銀・WGC は取り方の確認が先
 
 本番に組み込む前に、`WORLD_SOURCES` の主 6 本をクラウドの実行環境から fetch できるか確かめる（手元で読めても、クラウドでは挙動が変わりうる）。
 
