@@ -230,6 +230,20 @@ insight.factset.com
 ユーザーに提案し、「1と2を対応したい」として**1（取得元）と2（答え合わせ）は完了**。
 残り2つは未着手。
 
+### 世界の定点（`world`）★設計済み・2026-10-30・ユーザー承認済み
+
+6 つの地域の窓（北米・欧州・ロシア・中国・インド・中東）から金・ドル・米金利の論調を毎週同じ形で観測し、翌週に機械で答え合わせする。
+設計は `docs/SPEC.md` §5「world」、取得元の一覧と収集可否は `docs/research/overseas-market-media-top50.md`。
+
+実装の順（SPEC の段階 1）：
+1. `src/content.config.ts` に `world` コレクション（`windows` 6 件固定・`review`）を足す
+2. `src/config.ts` に `WORLD_SOURCES`（窓ごとの主／代替の媒体とホスト）と、`NAV` に `/world/` を足す
+3. `src/pages/world/index.astro`・`[...slug].astro`（週次の骨組みを流用。6×3 の論調の分布は新規コンポーネント）
+4. `tools/new-world.py`（雛形）・`tools/review-world.py`（前週の判定）・`check-report.py` の world 検査（6 窓・stance の enum・summary の字数・media のホスト・review の突き合わせ）
+5. 第45週（11/7 土）を手で 1 本作る。定期実行への追加（`docs/ROUTINES.md` 週次の 7-D）は第46週から。**ROUTINES.md とルーティンのプロンプトはまだ触っていない**
+
+本番に組み込む前に、`WORLD_SOURCES` の主 6 本をクラウドの実行環境から fetch できるか確かめる（手元で読めても、クラウドでは挙動が変わりうる）。
+
 ### 時系列ページ
 
 snapshot の8指標は全記事に構造化されて入っているが、**サイトは1日ずつしか見せていない。**
