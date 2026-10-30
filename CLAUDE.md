@@ -26,6 +26,9 @@
 - **`draft:` の行を手で書き換えない。**日次の定期実行は `tools/publish-gate.py --apply` が
   通った号だけを公開状態で push する（2026-10-05〜。`docs/SPEC.md` §10「日次の自動公開」）。
   週次と、条件を満たさなかった日次は下書きで出て、人が `/admin` から公開する
+- **計測タグ（GA4・Clarity 等）を head に `<script async src>` で直接書かない。**本体は
+  `src/components/Analytics.astro` と同じく「最初の操作か load の5秒後」に読む。async 直書きで
+  モバイルが69〜83点に落ちていた（2026-10-27 に96〜97点へ。測り方は `docs/HANDOVER.md` 4-8）
 - **構造・運用ルールを変えたら、同じコミットで `docs/SPEC.md` の該当セクションと
   更新履歴も更新する**
 
