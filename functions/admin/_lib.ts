@@ -70,6 +70,25 @@ export function field(fm: string, key: string): string {
   return m ? m[1].trim().replace(/^"|"$/g, '') : '';
 }
 
+/**
+ * performance の各行を {欄: 値} で返す。check-report.py の performance_rows と同じ読み方。
+ * 第44週から行頭に key / group が付いたので、欄の順は問わない。
+ * performance: の節だけを読む（flows や infographic.quotes の label を数えない）
+ */
+export function performanceRows(fm: string): Record<string, string>[] {
+  const m = /^performance:[ \t]*$([\s\S]*?)(?=^\S)/m.exec(fm);
+  if (!m) return [];
+  const rows: Record<string, string>[] = [];
+  for (const line of m[1].matchAll(/^\s*-\s*\{(.*)\}\s*$/gm)) {
+    const row: Record<string, string> = {};
+    for (const kv of line[1].matchAll(/(\w+):\s*("(?:[^"\\]|\\.)*"|[^,}]+)/g)) {
+      row[kv[1]] = kv[2].trim().replace(/^"|"$/g, '');
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
 const DAILY_SECTIONS = [
   '## Macro Theme', '## Market Drivers', '## 金利（起点）', '## ドル',
   '## 商品', '## 株', '## Crypto', '## Volatility', '## 今日の資金フロー',
@@ -120,9 +139,18 @@ export function validate(text: string, kind: 'daily' | 'weekly'): string[] {
     if (pts.length < 3) errors.push(`points が${pts.length}件です（3件以上）`);
     if (pts.some((m) => !m[1].trim())) errors.push('points に空の項目があります');
   } else {
-    const perf = [...fm.matchAll(
-      /\{\s*label:\s*"([^"]*)",\s*value:\s*"([^"]*)"/g)];
+    const perf = performanceRows(fm);
     if (perf.length < 5) errors.push(`performance が${perf.length}件です`);
+    for (const r of perf) {
+      const label = r.label ?? '';
+      const status = r.status ?? '確定';
+      if (!['確定', '読み取り', '未確認'].includes(status)) {
+        errors.push(`performance「${label}」の status が不正です: ${status}`);
+      }
+      if (!r.value && status !== '未確認') {
+        errors.push(`performance「${label}」の value が空です（取れなかったなら status: 未確認）`);
+      }
+    }
     if (!field(fm, 'bias')) errors.push('bias が空です');
     const kinds = [...fm.matchAll(/\{\s*kind:\s*(bull|base|bear),\s*trigger:\s*"([^"]*)"/g)];
     if (kinds.length < 3) errors.push('scenarios が3案そろっていません');
