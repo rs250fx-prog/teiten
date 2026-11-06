@@ -2,10 +2,9 @@
 import Base from '../../layouts/Base.astro';
 import ReportRow from '../../components/ReportRow.astro';
 import Subscribe from '../../components/Subscribe.astro';
-import { listReports, tagCounts } from '../../lib/content';
+import { listReports } from '../../lib/content';
 
 const reports = await listReports();
-const tags = await tagCounts();
 const latest = reports[0];
 
 // 年月ごとに束ねる。'2026-09' → エントリ配列
@@ -38,14 +37,6 @@ const monthLabel = (key: string) => {
       <div class="count num">全 {reports.length} 件</div>
     </header>
 
-    {tags.length > 0 && (
-      <div class="tagbar tags">
-        {tags.map((t) => (
-          <a href={`/topics/${t.slug}/`}>{t.tag} <i>{t.count}</i></a>
-        ))}
-      </div>
-    )}
-
     {months.map(([key, entries]) => (
       <section class="sec">
         <div class="sec-head">
@@ -66,7 +57,7 @@ const monthLabel = (key: string) => {
 </Base>
 
 <style>
-  .phead { padding: 48px 0 30px; }
+  .phead { padding: 48px 0 34px; border-bottom: 1px solid var(--line); }
   h1 {
     font-family: var(--se);
     font-size: clamp(28px, 4vw, 42px);
@@ -85,16 +76,6 @@ const monthLabel = (key: string) => {
     font-size: 12px;
     color: var(--muted);
     margin-top: 18px;
-  }
-  .tagbar {
-    padding-bottom: 34px;
-    border-bottom: 1px solid var(--line);
-  }
-  .tagbar a { padding: 5px 13px; font-size: 12px; }
-  .tagbar i {
-    font-style: normal;
-    font-variant-numeric: tabular-nums;
-    margin-left: 4px;
   }
   .sec { padding: 46px 0 0; }
   .sec:last-of-type { padding-bottom: 46px; border-bottom: 1px solid var(--line); }
