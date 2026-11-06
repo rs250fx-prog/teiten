@@ -228,6 +228,16 @@ def check(p, seen_no):
     if "情報元" in body and not re.search(r'-\s*\[[^\]]+\]\(https?://', body):
         err(p, "情報元にリンク付きリストがありません")
 
+    # サイトでは「情報元：」だけの行と直後のリストをアコーディオンに畳む（src/rehype-sources.mjs）。
+    # 表記が揺れたり、直後がリストでなかったりすると畳まれない。公開は止めないので警告にとどめる
+    lines = body.split("\n")
+    for i, line in enumerate(lines):
+        if not re.match(r'^\s*\**\s*情報元\s*\**\s*[：:]', line):
+            continue
+        following = next((l for l in lines[i + 1:] if l.strip()), "")
+        if line.strip() != "情報元：" or not following.startswith("- "):
+            warn(p, f"情報元が畳まれません。「情報元：」だけの行の直後にリストを置いてください（{line.strip()[:30]}）")
+
     # 埋め忘れの検出
     if re.search(r'^\s*###\s*[①②③]\s*$', body, re.M):
         err(p, "Market Drivers の見出しが未記入です")

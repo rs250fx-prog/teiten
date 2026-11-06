@@ -9,6 +9,7 @@ import { remarkStrongFix } from './src/remark-strong-fix.mjs';
 import { remarkFlow } from './src/remark-flow.mjs';
 import { remarkFigures } from './src/remark-figures.mjs';
 import { rehypeExternalLinks } from './src/rehype-external-links.mjs';
+import { rehypeSources } from './src/rehype-sources.mjs';
 
 /**
  * frontmatter で unlisted: true が指定された記事は、サイトマップからも除外する。
@@ -87,8 +88,8 @@ export default defineConfig({
       // 順序が逆だと、残ったアスタリスクがフロー表示へそのまま出る
       // 日次レポートの節の頭に図を足す（frontmatter の infographic と過去の号の snapshot から）
       remarkPlugins: [remarkStrongFix, remarkFlow, remarkFigures],
-      // 本文の外部リンクに target と rel を一括付与する
-      rehypePlugins: [rehypeExternalLinks],
+      // 本文の外部リンクに target と rel を一括付与し、「情報元：」のリストを閉じたアコーディオンにする
+      rehypePlugins: [rehypeExternalLinks, rehypeSources],
     }),
   },
 });

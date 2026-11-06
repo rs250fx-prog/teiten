@@ -309,6 +309,16 @@ button { font: inherit; }
 .prose a:hover { border-color: var(--accent); }
 .prose ul, .prose ol { padding-left: 1.4em; }
 .prose li + li { margin-top: .5em; }
+/* 情報元のアコーディオン（src/rehype-sources.mjs）。開閉は標準の details に任せ、アニメーションは付けない */
+.prose .sources { margin: 1.2em 0; font-size: 14px; line-height: 1.7; }
+.prose .sources summary { padding: 10px 0; cursor: pointer; color: var(--muted); }
+.prose .sources summary:hover { color: var(--accent); }
+.prose .sources summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.prose .sources ul { margin: 0 0 .6em; overflow-wrap: anywhere; }
+/* 閉じたままだと印刷で出典が消えるので、紙では常に開く */
+@media print {
+  .prose .sources::details-content { content-visibility: visible; display: block; }
+}
 .prose blockquote {
   border-left: 2px solid var(--line-2);
   padding-left: 1.2em;

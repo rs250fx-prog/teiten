@@ -60,12 +60,44 @@ for (const page of pages) {
   }
 }
 
+// 情報元のアコーディオン（src/rehype-sources.mjs）の確認。
+// 「情報元：」が畳まれずに残っていないか、見出しの件数がリストの行数と合うかを見る
+let badSources = 0;
+let sourceBlocks = 0;
+for (const page of pages) {
+  const rel = path.relative(DIST, page).split(path.sep).join('/');
+  if (!/^(reports|weekly)\/[^/]+\/index\.html$/.test(rel)) continue;
+  const html = fs.readFileSync(page, 'utf-8');
+
+  if (/<p>\s*情報元：\s*<\/p>/.test(html)) {
+    badSources++;
+    console.error(`NG ${rel}: 「情報元：」の直後がリストでないため、畳まれていません`);
+  }
+
+  for (const m of html.matchAll(
+    /<details class="sources"><summary>情報元：(.*?)<\/summary>\s*<ul>([\s\S]*?)<\/ul>\s*<\/details>/g,
+  )) {
+    sourceBlocks++;
+    const [, names, rest] = m[1].match(/^(.*?)(?: ほか(\d+)件)?$/);
+    const shown = names.split('、').length + Number(rest ?? 0);
+    const rows = (m[2].match(/<li>/g) ?? []).length;
+    if (shown !== rows) {
+      badSources++;
+      console.error(`NG ${rel}: 情報元の見出しは${shown}件、リストは${rows}件（${m[1]}）`);
+    }
+  }
+}
+
 if (bad) {
   console.error(`\n可視のアスタリスクが ${bad} 件あります。`);
   console.error('閉じ側の ** の直後に句読点か空白を置くか、強調をやめてください。');
+}
+if (badSources) console.error(`\n情報元の表示に ${badSources} 件の問題があります。`);
+if (bad || badSources) {
   // 既定ではビルドを止めない。記事が出ないことのほうが損失が大きい
   if (process.argv.includes('--strict')) process.exit(1);
   process.exit(0);
 }
 
 console.log(`OK 可視のアスタリスクなし（${pages.length}ページ）`);
+console.log(`OK 情報元のアコーディオン ${sourceBlocks} か所`);
