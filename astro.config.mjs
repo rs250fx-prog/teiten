@@ -36,7 +36,7 @@ function unlistedPaths(dir, prefix) {
 function emptyTopicPaths() {
   const slug = (t) => t.trim().toLowerCase().replace(/[\/\\\s]+/g, '-').replace(/[?#%&]/g, '');
   const used = new Set();
-  for (const dir of ['./src/content/reports', './src/content/weekly']) {
+  for (const dir of ['./src/content/reports', './src/content/weekly', './src/content/world']) {
     if (!fs.existsSync(dir)) continue;
     for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.md') && !x.startsWith('_'))) {
       const fm = fs.readFileSync(path.join(dir, f), 'utf-8').split('---')[1] ?? '';
@@ -59,6 +59,7 @@ const excluded = [
   ...ALWAYS_EXCLUDED,
   ...unlistedPaths('./src/content/reports', '/reports'),
   ...unlistedPaths('./src/content/weekly', '/weekly'),
+  ...unlistedPaths('./src/content/world', '/world'),
   ...emptyTopicPaths(),
 ];
 

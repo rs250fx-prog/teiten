@@ -331,4 +331,102 @@ const weekly = defineCollection({
   }),
 });
 
-export const collections = { reports, weekly };
+/**
+ * 論調（Take）。stance は5値。
+ *   bull / neutral / bear … その週の読み
+ *   split   … 1つの窓に2媒体あり、向きが逆だった。中立に丸めない（summary に両方の読みを書く）
+ *   unknown … その論点の記事が無かった。summary は理由を1行（「今週の該当記事なし」など）
+ * summary は全角80字以内の自分の言葉。翻訳の転載ではない（docs/SPEC.md §5 world）
+ */
+const take = z.object({
+  stance: z.enum(['bull', 'neutral', 'bear', 'split', 'unknown']),
+  summary: z.string().max(90).default(''),
+});
+
+const REGION_ORDER = ['na', 'eu', 'ru', 'cn', 'in', 'me'] as const;
+
+/**
+ * 世界の定点。
+ * ファイル名 = スラッグ（例: src/content/world/2026-w46.md）。週次と同じ週を対象にする。
+ *
+ * 6つの地域の窓を固定し、各窓を「論調の層」（媒体が金・ドル・米金利をどう読んだか）と
+ * 「現物の層」（窓ごとに固定した系列1本。src/data/world/<slug>.json から描く）の2段で毎週観測する。
+ * **frontmatter に数値は書かない。**論調と要約と出典だけを持つ。
+ */
+const world = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/world' }),
+  schema: z.object({
+    week: z.number(),
+    year: z.number(),
+    title: z.string(),
+    deck: z.string(),
+    start: z.string(),
+    end: z.string(),
+    date: z.string().optional(),
+    updated: z.string().optional(),
+
+    /** 今週の要点。3〜5件 */
+    points: z.array(z.string()).default([]),
+
+    /**
+     * 6つの窓。順序固定：na（北米）/ eu（欧州）/ ru（ロシア）/ cn（中国）/ in（インド）/ me（中東）。
+     * status が「未確認」の窓は gold 以下を書かない（3論点とも取れなかった窓）。
+     * 1論点だけ取れなかったときは、その論点の stance を unknown にする
+     */
+    windows: z
+      .array(
+        z.object({
+          region: z.enum(REGION_ORDER),
+          media: z.array(z.object({ name: z.string(), url: z.string().url() })).min(1).max(2),
+          gold: take.optional(),
+          dollar: take.optional(),
+          rates: take.optional(),
+          /** 原文の短い引用。30語（日本語なら60字）以内、出典 URL 必須 */
+          quote: z.object({ text: z.string(), source: z.string(), url: z.string().url() }).optional(),
+          status: z.enum(['確定', '未確認']),
+        }),
+      )
+      .length(6)
+      .refine((ws) => ws.every((w, i) => w.region === REGION_ORDER[i]), {
+        message: 'windows は na / eu / ru / cn / in / me の順に6件',
+      }),
+
+    /**
+     * 現物の層への一言。キーは地域コード。値は書かない（週次の ratioNotes と同じ扱い）。
+     * src/data/world/<slug>.json に値が無い窓には書かない
+     */
+    physicalNotes: z.record(z.string(), z.string()).default({}),
+
+    /**
+     * 前週の論調の答え合わせ。tools/review-world.py が週次の JSON の前週比で機械判定して書く。
+     * 手で書いた判定を優先しない。split / unknown の論点は items に入れない
+     */
+    review: z
+      .object({
+        of: z.string().default(''),
+        items: z
+          .array(
+            z.object({
+              region: z.enum(REGION_ORDER),
+              topic: z.enum(['gold', 'dollar', 'rates']),
+              stance: z.enum(['bull', 'neutral', 'bear']),
+              result: z.enum(['hit', 'partial', 'miss']),
+              note: z.string().default(''),
+            }),
+          )
+          .default([]),
+      })
+      .default({ of: '', items: [] }),
+
+    tags: z.array(z.string()).default([]),
+    description: z.string().default(''),
+    keywords: z.array(z.string()).default([]),
+    ogImage: z.string().optional(),
+
+    draft: z.boolean().default(false),
+    unlisted: z.boolean().default(false),
+    access: z.enum(['public', 'members']).default('public'),
+  }),
+});
+
+export const collections = { reports, weekly, world };

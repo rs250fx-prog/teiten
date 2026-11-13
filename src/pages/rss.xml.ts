@@ -1,7 +1,7 @@
 import rss from '@astrojs/rss';
 import type { APIRoute } from 'astro';
 import { IS_PUBLIC, SITE_NAME, SITE_DESCRIPTION, SITE_URL } from '../config';
-import { listReports, listWeekly } from '../lib/content';
+import { listReports, listWeekly, listWorld } from '../lib/content';
 
 export const GET: APIRoute = async () => {
   // 本公開前は配信しない
@@ -9,6 +9,7 @@ export const GET: APIRoute = async () => {
 
   const reports = await listReports();
   const weekly = await listWeekly();
+  const world = await listWorld();
 
   const items = [
     ...reports.map((e) => ({
@@ -23,6 +24,13 @@ export const GET: APIRoute = async () => {
       description: e.data.description || e.data.deck,
       pubDate: new Date(e.data.date ?? e.data.end),
       link: `/weekly/${e.id}/`,
+      categories: e.data.tags,
+    })),
+    ...world.map((e) => ({
+      title: `[世界の定点] ${e.data.title}`,
+      description: e.data.description || e.data.deck,
+      pubDate: new Date(e.data.date ?? e.data.end),
+      link: `/world/${e.id}/`,
       categories: e.data.tags,
     })),
   ].sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime());

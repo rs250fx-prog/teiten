@@ -2,6 +2,7 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 
 export type Report = CollectionEntry<'reports'>;
 export type Weekly = CollectionEntry<'weekly'>;
+export type World = CollectionEntry<'world'>;
 
 const isVisible = (data: { draft: boolean; unlisted: boolean }) =>
   !data.draft && !data.unlisted;
@@ -32,6 +33,21 @@ export async function listWeekly(): Promise<Weekly[]> {
 
 export async function allWeekly(): Promise<Weekly[]> {
   const all = await getCollection('weekly', ({ data }) => !data.draft);
+  return all.sort(
+    (a, b) => b.data.year - a.data.year || b.data.week - a.data.week,
+  );
+}
+
+/** 世界の定点。新しい週から */
+export async function listWorld(): Promise<World[]> {
+  const all = await getCollection('world', ({ data }) => isVisible(data));
+  return all.sort(
+    (a, b) => b.data.year - a.data.year || b.data.week - a.data.week,
+  );
+}
+
+export async function allWorld(): Promise<World[]> {
+  const all = await getCollection('world', ({ data }) => !data.draft);
   return all.sort(
     (a, b) => b.data.year - a.data.year || b.data.week - a.data.week,
   );

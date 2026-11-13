@@ -11,10 +11,11 @@ import { Env, toItem, json, BRANCH, REPO_DEFAULT } from '../_lib';
 const LIMIT = 40;
 
 const QUERY = `
-query($owner: String!, $name: String!, $daily: String!, $weekly: String!) {
+query($owner: String!, $name: String!, $daily: String!, $weekly: String!, $world: String!) {
   repository(owner: $owner, name: $name) {
     daily: object(expression: $daily) { ...tree }
     weekly: object(expression: $weekly) { ...tree }
+    world: object(expression: $world) { ...tree }
   }
 }
 fragment tree on Tree {
@@ -47,6 +48,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
           name,
           daily: `${BRANCH}:src/content/reports`,
           weekly: `${BRANCH}:src/content/weekly`,
+          world: `${BRANCH}:src/content/world`,
         },
       }),
     });
@@ -63,6 +65,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     const files: Entry[] = [
       ...(repo.daily?.entries ?? []),
       ...(repo.weekly?.entries ?? []),
+      ...(repo.world?.entries ?? []),
     ].filter((e: Entry) => e.type === 'blob' && e.name.endsWith('.md')
       && !e.name.startsWith('_') && e.object?.text != null);
 

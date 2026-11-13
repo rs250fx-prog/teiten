@@ -1,0 +1,102 @@
+---
+/**
+ * 論調の分布。6地域 × 3論点の18マスを色で描く。
+ *
+ * 数は数えても割合は出さない（件数が少ないうちは1マスで大きく振れる）。
+ * split は割れの色、unknown は空のマス。どの窓が揃い、どこで割れたかを一目で見るための表。
+ */
+import { REGIONS, TOPICS_W, STANCE, type Stance } from '../lib/world';
+
+interface Take { stance: Stance; summary: string }
+interface Window {
+  region: string;
+  gold?: Take;
+  dollar?: Take;
+  rates?: Take;
+  status: '確定' | '未確認';
+}
+interface Props { windows: Window[] }
+const { windows } = Astro.props;
+
+const stanceOf = (w: Window | undefined, t: (typeof TOPICS_W)[number]['key']): Stance =>
+  w?.[t]?.stance ?? 'unknown';
+
+const byRegion = new Map(windows.map((w) => [w.region, w]));
+const cells = REGIONS.map((r) => ({
+  region: r,
+  takes: TOPICS_W.map((t) => ({ topic: t, stance: stanceOf(byRegion.get(r.key), t.key) })),
+}));
+
+// 論点ごとの数（強気・中立・弱気・割れ・未確認）。割合は出さない
+const count = (topic: string, s: Stance) =>
+  cells.filter((c) => c.takes.find((x) => x.topic.key === topic)?.stance === s).length;
+const ORDER: Stance[] = ['bull', 'neutral', 'bear', 'split', 'unknown'];
+---
+
+<section class="wg" aria-label="論調の分布">
+  <div class="sec-head"><h2>論調の分布</h2></div>
+  <div class="tbl">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">窓</th>
+          {TOPICS_W.map((t) => <th scope="col">{t.label}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {cells.map((c) => (
+          <tr>
+            <th scope="row">{c.region.label}</th>
+            {c.takes.map((x) => (
+              <td>
+                <span class:list={['cell', x.stance]} title={STANCE[x.stance].label}>
+                  <span class="m" aria-hidden="true">{STANCE[x.stance].mark}</span>
+                  <span class="t">{STANCE[x.stance].label}</span>
+                </span>
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th scope="row">数</th>
+          {TOPICS_W.map((t) => (
+            <td class="num">
+              {ORDER.filter((s) => count(t.key, s) > 0)
+                .map((s) => `${STANCE[s].label}${count(t.key, s)}`)
+                .join('・')}
+            </td>
+          ))}
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  <p class="src">強気・中立・弱気は各窓の媒体の読み。割れは1窓2媒体で向きが逆だったもの、未確認はその論点の記事が無かったもの。</p>
+</section>
+
+<style>
+  .wg { margin-top: 40px; }
+  .tbl { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+  thead th, tfoot th {
+    font-family: var(--sa); font-size: 11px; letter-spacing: .12em; color: var(--muted); font-weight: 600;
+  }
+  thead th { border-bottom: 1px solid var(--line-2); }
+  tbody th { font-weight: 700; white-space: nowrap; }
+  tfoot td { font-family: var(--sa); font-size: 12px; color: var(--muted); border-bottom: 0; }
+  tfoot th { border-bottom: 0; }
+  .cell {
+    display: inline-flex; align-items: center; gap: 6px;
+    min-width: 5.2em; padding: 3px 10px; border-radius: 4px;
+    font-family: var(--sa); font-size: 12.5px; font-weight: 700; white-space: nowrap;
+  }
+  .cell .m { font-size: 10px; }
+  .cell.bull { color: var(--up); background: color-mix(in srgb, var(--up) 14%, transparent); }
+  .cell.bear { color: var(--down); background: color-mix(in srgb, var(--down) 14%, transparent); }
+  .cell.neutral { color: var(--ink); background: var(--surface-2); }
+  .cell.split { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  .cell.unknown { color: var(--muted); border: 1px dashed var(--line-2); font-weight: 500; }
+  .src { font-size: 12.5px; line-height: 1.8; color: var(--muted); margin-top: 10px; }
+</style>

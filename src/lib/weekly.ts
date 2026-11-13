@@ -38,11 +38,26 @@ export interface Cot {
   status: Status;
   source?: string;
 }
+/** 25銘柄の週次の値。performance の value はここから雛形に入る（「世界の定点」の答え合わせもここを読む） */
+export interface Asset {
+  key: string;
+  label: string;
+  group: string;
+  digits: number;
+  unit: string;
+  close: number | null;
+  asof: string;
+  prev: number | null;
+  prev_asof: string;
+  status: Status;
+  source?: string;
+}
 export interface WeeklyData {
   slug: string;
   start: string;
   end: string;
   fetched: string;
+  assets?: Asset[];
   ratios: Ratio[];
   ranges: Range[];
   cot: Cot[];

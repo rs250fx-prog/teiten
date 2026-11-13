@@ -1,0 +1,160 @@
+---
+/**
+ * 「世界の定点」の6つの窓。上段に論調の層（3論点の論調タグ・要約・引用・出典）、
+ * 下段に現物の層（src/data/world/<slug>.json の値。無い週は出さない）。
+ *
+ * 取れなかった窓（status: 未確認）は点線の枠で、理由を1行だけ出す。
+ * 1論点だけ取れなかった窓は、その論点を「未確認」と出す。
+ * 2媒体で向きが割れた論点は「割れ」と出し、中立に丸めない。
+ */
+import { REGIONS, TOPICS_W, STANCE, type Stance } from '../lib/world';
+
+interface Take { stance: Stance; summary: string }
+interface Window {
+  region: string;
+  media: { name: string; url: string }[];
+  gold?: Take;
+  dollar?: Take;
+  rates?: Take;
+  quote?: { text: string; source: string; url: string };
+  status: '確定' | '未確認';
+}
+interface Props {
+  windows: Window[];
+  physicalNotes?: Record<string, string>;
+}
+const { windows, physicalNotes = {} } = Astro.props;
+
+const label = (k: string) => REGIONS.find((r) => r.key === k)?.label ?? k;
+const takeOf = (w: Window, t: (typeof TOPICS_W)[number]['key']): Take =>
+  w[t] ?? { stance: 'unknown', summary: '' };
+---
+
+<section class="ww" aria-label="6つの窓">
+  <div class="sec-head"><h2>6つの窓</h2></div>
+  <div class="grid">
+    {windows.map((w) => (
+      <article class:list={['win', { unconfirmed: w.status === '未確認' }]}>
+        <header class="win-h">
+          <h3>
+            {label(w.region)}
+            <span class="code">{w.region}</span>
+          </h3>
+          <p class="media">
+            {w.media.map((m, i) => (
+              <>
+                {i > 0 && <span class="sep">／</span>}
+                <a href={m.url} target="_blank" rel="noopener nofollow">{m.name}</a>
+              </>
+            ))}
+          </p>
+        </header>
+
+        {w.status === '未確認' ? (
+          <p class="none">今週は3つの論点とも該当する記事が無く、未確認のまま出す。近い媒体や検索結果で埋めない。</p>
+        ) : (
+          <div class="takes">
+            {TOPICS_W.map((t) => {
+              const k = takeOf(w, t.key);
+              const s = STANCE[k.stance];
+              return (
+                <div class="take">
+                  <div class="take-h">
+                    <span class="lbl">{t.label}</span>
+                    <span class:list={['chip', k.stance]}>
+                      {s.mark && <span class="mark" aria-hidden="true">{s.mark}</span>}
+                      {s.label}
+                    </span>
+                  </div>
+                  {k.summary && <p class:list={['sum', { muted: k.stance === 'unknown' }]}>{k.summary}</p>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {w.quote && (
+          <blockquote>
+            <p>“{w.quote.text}”</p>
+            <cite><a href={w.quote.url} target="_blank" rel="noopener nofollow">{w.quote.source}</a></cite>
+          </blockquote>
+        )}
+
+        {physicalNotes[w.region] && (
+          <p class="phys"><span class="lbl">現物</span>{physicalNotes[w.region]}</p>
+        )}
+
+        <footer class="win-f">
+          <span class:list={['status', w.status === '確定' ? 'ok' : 'ng']}>{w.status}</span>
+        </footer>
+      </article>
+    ))}
+  </div>
+</section>
+
+<style>
+  .ww { margin-top: 36px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+  .win {
+    display: flex; flex-direction: column; gap: 12px; min-width: 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 20px 20px 14px;
+  }
+  .win.unconfirmed { background: transparent; border-style: dashed; }
+  .win-h { border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+  .win h3 {
+    display: flex; align-items: baseline; gap: 10px;
+    font-family: var(--se); font-size: 18px; font-weight: 700; line-height: 1.4;
+  }
+  .code {
+    font-family: var(--sa); font-size: 11px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--muted); font-weight: 500;
+  }
+  .media { margin-top: 4px; font-family: var(--sa); font-size: 12.5px; color: var(--muted); }
+  .media a { color: var(--accent); }
+  .sep { margin: 0 6px; }
+  .takes { display: flex; flex-direction: column; gap: 10px; }
+  .take-h { display: flex; align-items: center; gap: 10px; }
+  .lbl {
+    font-family: var(--sa); font-size: 11px; letter-spacing: .14em;
+    color: var(--muted); min-width: 3.4em;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--sa); font-size: 12.5px; font-weight: 700;
+    padding: 2px 9px; border-radius: 4px; line-height: 1.6; white-space: nowrap;
+  }
+  .chip .mark { font-size: 10px; }
+  .chip.bull { color: var(--up); background: color-mix(in srgb, var(--up) 14%, transparent); }
+  .chip.bear { color: var(--down); background: color-mix(in srgb, var(--down) 14%, transparent); }
+  .chip.neutral { color: var(--ink); background: var(--surface-2); }
+  .chip.split { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  .chip.unknown { color: var(--muted); border: 1px dashed var(--line-2); font-weight: 500; }
+  .sum { margin: 4px 0 0; font-size: 14px; line-height: 1.8; color: var(--ink); }
+  .sum.muted { color: var(--muted); font-size: 13px; }
+  .none { font-size: 13.5px; line-height: 1.8; color: var(--muted); }
+  blockquote {
+    margin: 2px 0 0; padding: 10px 14px;
+    border-left: 3px solid var(--line-2); background: var(--surface-2);
+    border-radius: 0 var(--r) var(--r) 0;
+    font-size: 13.5px;
+  }
+  blockquote p { margin: 0 0 4px; line-height: 1.65; }
+  blockquote cite { font-style: normal; font-family: var(--sa); font-size: 12px; color: var(--muted); }
+  blockquote cite a { color: var(--accent); }
+  .phys { display: flex; gap: 10px; font-size: 13.5px; line-height: 1.7; color: var(--ink); }
+  .win-f { margin-top: auto; display: flex; justify-content: flex-end; }
+  .status {
+    font-family: var(--sa); font-size: 11.5px; letter-spacing: .08em;
+    padding: 1px 9px; border-radius: 3px; border: 1px solid var(--line-2);
+  }
+  .status.ok { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .status.ng { color: var(--muted); }
+</style>

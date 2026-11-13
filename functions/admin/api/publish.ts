@@ -1,4 +1,4 @@
-import { Env, gh, fromB64, toB64, validate, frontmatter, field, json, BRANCH } from '../_lib';
+import { Env, gh, fromB64, toB64, validate, kindOf, frontmatter, field, json, BRANCH } from '../_lib';
 
 /**
  * draft を切り替えてコミットする。Cloudflare Pages が自動で再デプロイする。
@@ -19,7 +19,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
     const file = await gh(ctx.env, `/contents/${path}?ref=${BRANCH}`);
     const text = fromB64(file.content);
-    const kind = path.includes('/weekly/') ? 'weekly' : 'daily';
+    const kind = kindOf(path);
 
     if (publish) {
       const errors = validate(text, kind);

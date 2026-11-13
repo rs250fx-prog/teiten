@@ -228,7 +228,20 @@ Claude の cloud routines に登録しているプロンプトの原本。**ル�
    note 用の図解を書き出す（SKILL.md のステップ8-C）。**数値は `ref` で performance から引き、performance に無い数字だけを
    `infographic.quotes` に書く。**`watch` は `schedule` にある予定だけ。エラーが出たら文言を詰めて、通るまでやり直す
    `infographic.table` は必ず書く（省くと25行すべてが表になる）
-8. commit して `main` に push する。`src/data/weekly/<YYYY-wNN>.json`、`note/<YYYY-wNN>.md`、`note/thumb_<YYYYwNN>.png`、`note/info_<YYYYwNN>.png` も add に含める
+7-D. 「世界の定点」（`docs/SPEC.md` §5「world」、SKILL.md の「世界の定点」節）を同じ週で作る。週次本体が休止ならこれも出さない。
+   (1) `python tools/new-world.py` で雛形 `src/content/world/<YYYY-wNN>.md` を作る（6 つの窓が主媒体で並ぶ）
+   (2) `src/data/world-sources.json` の主媒体（6 窓・計 8 本）の一覧ページを WebFetch で読み、対象週（月曜 0:00 JST から今まで）の
+       金・ドル・米金利の記事を各窓 2〜4 本開く。**主が読めない窓だけ代替を読む。それ以外の媒体を使わない。**
+   (3) 各窓の `gold` / `dollar` / `rates` に `stance`（bull / neutral / bear / split / unknown）と `summary`（全角80字以内の自分の言葉）を書く。
+       1 窓 2 媒体で向きが逆なら `split`（中立に丸めない）。その論点の記事が無ければ `unknown` と理由 1 行。3 論点とも無い窓は `status: 未確認` にして
+       `gold` 以下を消す。**近い媒体や検索結果で埋めない。**`media[].url` は読んだ記事の URL に差し替え、`quote` は 30 語以内の原文と出典 URL
+   (4) `python tools/review-world.py <YYYY-wNN> --write` で前週の答え合わせを書く（手順 1 の JSON が要る。手で判定しない）
+   (5) `points`（3〜5 件）・`title`・`deck`・`description`（80〜100 字）・本文の「## 総括」（150〜600 字。どの窓が外れたか、地域で読みが割れた点だけ）・
+       末尾の「情報元：」（読んだ記事をリンク付きリストで。素の URL を並べない）を書く。**窓にも本文にも数値を書かない**（値は週次の JSON から描く）
+   (6) `python tools/check-report.py <YYYY-wNN>` を実行し、エラーが 0 になるまで直す（週次と世界の定点の両方を検査する）
+   (7) `draft: true` のまま、週次本体と同じコミットに `src/content/world/<YYYY-wNN>.md` を add する（片方だけ出た週を作らない）
+8. commit して `main` に push する。`src/data/weekly/<YYYY-wNN>.json`、`note/<YYYY-wNN>.md`、`note/thumb_<YYYYwNN>.png`、`note/info_<YYYYwNN>.png`、
+   `src/content/world/<YYYY-wNN>.md` も add に含める
 
 ## 書き方
 
@@ -273,6 +286,7 @@ Claude の cloud routines に登録しているプロンプトの原本。**ル�
 - note 用の簡易版（`note/<YYYY-wNN>.md`）を書いたか
 - note 用サムネイル（`note/thumb_<YYYYwNN>.png`）を書き出せたか。「注意」が出た行があればその内容
 - note 用の図解（`note/info_<YYYYwNN>.png`）を書き出せたか。公開後は `https://teiten.trade/info/<YYYY-wNN>.png`
+- 世界の定点（`src/content/world/<YYYY-wNN>.md`）を書いたか。未確認の窓と `unknown` の論点の数、主が読めず代替を使った窓、前週の答え合わせの件数（想定どおり／方向は合った／想定と違った）
 - push したコミットのハッシュ
 
 **push に失敗した場合は、作成した記事の全文（frontmatter を含む）を報告に
@@ -303,6 +317,7 @@ Claude の cloud routines に登録しているプロンプトの原本。**ル�
 
 | 日付 | 内容 |
 |---|---|
+| 2026-11-13 | **週次の手順に 7-D（「世界の定点」）を足した。**`tools/new-world.py` → 主媒体 8 本を読んで 6 窓の論調を書く → `tools/review-world.py --write` → 総括と情報元 → `check-report.py` → 週次本体と同じコミットで下書き push。完了時の報告には未確認の窓と `unknown` の論点の数を足す。**登録済みのルーティン（`trig_016QTPqnayVK9vrrR6HSGWNu`）の文面にはまだ反映していない。**クラウドの実行環境から主 6 本を fetch できるかを確かめてから反映し、第47週（11/21 土）から動かす。初号（第46週）は 11/13 に手で作った |
 | 2026-10-27 | **週次の実行時刻を土曜 9:00 から 14:00 JST に変えた**（cron `CRON_TZ=Asia/Tokyo 0 14 * * 6`。ユーザーが登録側で変更し、原本を合わせた）。Yahoo の日足は土曜13時 JST に確定するため、9時では先物（金・銀・原油・銅）とドル指数の金曜の値が「読み取り」にしかならなかった。14時なら確定値で書ける。プロンプトの「土曜9時の時点で」も14時に直した。`trig_016QTPqnayVK9vrrR6HSGWNu` に反映済み |
 | 2026-10-27 | 10/27 の日次の実行で、実行環境の既定の Node（22.22）ではビルドが止まり、ルーティンが自分で `nvm use 24` に切り替えて通した。**日次の手順6・週次の手順7に `nvm use 24` を明記した。**あわせて日次の手順2-Bに、期限のあるシナリオを期限まで `pending` にする規則と、期限後に元の号の `review` を判定する手順を足した（10/27号が「FOMCまで4,000ドルを挟む」を1日目で `hit` にしたため。同号は `pending` に直した）。両ルーティンに反映済み |
 | 2026-10-27 | **週次の銘柄拡充に合わせて両方を直した。**週次は手順1に `tools/fetch-weekly.py --write`（25銘柄・レシオ・建玉・ETFフロー・FOMC の織り込み・相関・週足のレンジを JSON に書く）を足し、雛形の performance を取得値で埋め、書くのは寸評だけにした。ratioNotes・flows・moreLevels・金・銀・ドル円の予想レンジ・トピックのタグを「書き方」に足し、push に JSON を含め、完了報告に取れなかった銘柄とレシオ・FOMC の織り込みを足した。日次は手順2の取得対象に銀・プラチナ・銅・MOVE・HYスプレッド・日本10年債・BTC・BTC現物ETFを足した（snapshot は変えない）。**両ルーティン（`trig_01YXGbBvr9ALLagKshTTcikj` / `trig_016QTPqnayVK9vrrR6HSGWNu`）に同じ文面を反映済み** |

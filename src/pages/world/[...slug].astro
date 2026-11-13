@@ -1,0 +1,227 @@
+---
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Subscribe from '../../components/Subscribe.astro';
+import Snapshot from '../../components/Snapshot.astro';
+import RailList from '../../components/RailList.astro';
+import WorldWindows from '../../components/WorldWindows.astro';
+import WorldGrid from '../../components/WorldGrid.astro';
+import WorldReview from '../../components/WorldReview.astro';
+import {
+  allWorld, listReports, listWeekly, monthDay, longDate, tagSlug, isoJst,
+} from '../../lib/content';
+import { actuals } from '../../lib/world';
+import { SITE_URL, OPERATOR, PUBLISHER_URL, EDITOR } from '../../config';
+
+export async function getStaticPaths() {
+  const entries = await allWorld();
+  return entries.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const d = entry.data;
+
+// 答え合わせに使う当週の実績（週次の JSON）。無い週は値を出さない
+const act = actuals(entry.id);
+const railQuotes = act.map((a) => ({ label: a.label, value: a.text, change: `${a.asof.slice(5).replace('-', '/')}時点`, dir: a.dir }));
+
+// 同じ週の週次まとめ。あれば右列から辿れるようにする
+const weekly = await listWeekly();
+const sameWeek = weekly.find((w) => w.id === entry.id);
+const reports = await listReports();
+const latest = reports[0];
+
+const railItems = sameWeek
+  ? [{ href: `/weekly/${sameWeek.id}/`, meta: `WEEK ${sameWeek.data.week}`, title: sameWeek.data.title }]
+  : [];
+
+const pageUrl = new URL(`/world/${entry.id}/`, SITE_URL).href;
+const modifiedIso = isoJst(d.date ?? d.end, d.updated);
+const schema = [
+  {
+    '@type': 'NewsArticle',
+    '@id': `${pageUrl}#article`,
+    headline: d.title,
+    description: d.description || d.deck,
+    datePublished: d.date ?? d.end,
+    dateModified: modifiedIso ?? d.date ?? d.end,
+    inLanguage: 'ja',
+    isAccessibleForFree: d.access === 'public',
+    articleSection: '世界の定点',
+    keywords: d.tags.join(', '),
+    url: pageUrl,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': pageUrl },
+    image: new URL(d.ogImage ?? '/og-default.png', SITE_URL).href,
+    author: {
+      '@type': 'Person',
+      name: EDITOR.name,
+      jobTitle: '編集者',
+      url: EDITOR.url,
+      worksFor: { '@type': 'Organization', name: OPERATOR.name, url: PUBLISHER_URL },
+    },
+    publisher: { '@id': `${SITE_URL}/#organization` },
+    isPartOf: { '@id': `${SITE_URL}/#website` },
+  },
+];
+const breadcrumbs = [{ name: '世界の定点', path: '/world/' }, { name: d.title }];
+---
+
+<Base
+  title={d.title}
+  description={d.description || d.deck}
+  type="article"
+  ogImage={d.ogImage}
+  publishedTime={d.date ?? d.end}
+  modifiedTime={modifiedIso}
+  unlisted={d.unlisted}
+  schema={schema}
+  breadcrumbs={breadcrumbs}
+  quotes={latest?.data.snapshot ?? []}
+  mastDate={latest?.data.date}
+  mastNo={latest?.data.no}
+>
+  <div class="wrap">
+    {/* 週次と同じ骨組み。右列には答え合わせに使う3系列の前週比と、同じ週の週次まとめ */}
+    <div class="article-layout">
+    <div class="article-main">
+    <article>
+      <nav class="crumb" aria-label="パンくず">
+        <a href="/">ホーム</a>
+        <span aria-hidden="true">/</span>
+        <a href="/world/">世界の定点</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">WEEK {d.week}</span>
+      </nav>
+
+      <header class="head">
+        <div class="rubric">
+          <span class="num">WEEK {d.week}</span>
+          <span class="rule" aria-hidden="true"></span>
+          <span class="num">{monthDay(d.start)} — {monthDay(d.end)}</span>
+        </div>
+        <h1>{d.title}</h1>
+        <p class="deck">{d.deck}</p>
+        <div class="by">
+          <span>Financial and Marketing M16</span>
+          <span>{EDITOR.role}：<a href={EDITOR.url}>{EDITOR.name}</a></span>
+          <span>{longDate(d.date ?? d.end)} 発行</span>
+          {d.updated && <span>更新 {d.updated}</span>}
+        </div>
+        {d.tags.length > 0 && (
+          <div class="tags">
+            {d.tags.map((t) => <a href={`/topics/${tagSlug(t)}/`}>{t}</a>)}
+          </div>
+        )}
+      </header>
+
+      {d.points.length > 0 && (
+        <section class="points" aria-label="今週の要点">
+          <div class="points-h">今週の要点</div>
+          <ol>
+            {d.points.map((p) => <li>{p}</li>)}
+          </ol>
+        </section>
+      )}
+
+      <WorldWindows windows={d.windows} physicalNotes={d.physicalNotes} />
+
+      <WorldGrid windows={d.windows} />
+
+      <WorldReview review={d.review} actuals={act} />
+
+      <div class="prose">
+        <Content />
+      </div>
+
+      <section class="how" aria-label="この観測の決まり">
+        <div class="how-h">この観測の決まり</div>
+        <p>
+          6つの窓と、窓ごとの媒体は固定している。要約は編集部の言葉で、引用は短く出典つき。
+          読めなかった窓は「未確認」のまま出し、近い媒体や検索結果で埋めない。
+          論調の答え合わせは翌週、金・ドル指数が前週比 ±0.5%、米10年債が ±5bp の閾値で機械的に行う。
+          数値は媒体の記事から転記せず、週次まとめと同じ系列から取る。
+        </p>
+      </section>
+    </article>
+    </div>
+
+    <aside class="article-rail">
+      <div class="article-rail-in">
+        {railQuotes.length > 0 && (
+          <div class="rail-only">
+            <Snapshot quotes={railQuotes} variant="list" heading="答え合わせの3系列（前週比）" />
+          </div>
+        )}
+        {railItems.length > 0 && (
+          <RailList
+            heading="同じ週の週次まとめ"
+            items={railItems}
+            moreHref="/weekly/"
+            moreLabel="週次まとめへ →"
+            clamp={2}
+          />
+        )}
+      </div>
+    </aside>
+    </div>
+
+    <Subscribe />
+  </div>
+</Base>
+
+<style>
+  article { padding-top: 34px; }
+  .crumb {
+    display: flex; gap: 9px; flex-wrap: wrap;
+    font-family: var(--sa); font-size: 12.5px; color: var(--muted); margin-bottom: 22px;
+  }
+  .crumb a:hover { color: var(--accent); }
+  .rubric {
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--sa); font-size: 11px; letter-spacing: .14em; color: var(--accent); margin-bottom: 20px;
+  }
+  .rubric .rule { flex: 1; height: 1px; background: var(--line); display: block; }
+  h1 {
+    font-family: var(--se);
+    font-size: clamp(27px, 4vw, 44px);
+    font-weight: 700; line-height: 1.42; margin-bottom: 22px; max-width: 24ch;
+  }
+  .deck { font-size: 17px; line-height: 1.9; font-weight: 400; color: var(--ink-2); max-width: 58ch; margin-bottom: 26px; }
+  .by {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    font-family: var(--sa); font-size: 11.5px; color: var(--muted);
+    padding-top: 18px; border-top: 1px solid var(--line);
+  }
+  .tags { margin-top: 14px; }
+  .prose { max-width: 68ch; padding: 34px 0 0; }
+
+  .points { margin: 34px 0 0; background: var(--surface-2); border-radius: var(--r); padding: 28px 32px; }
+  .points-h {
+    font-family: var(--sa); font-size: 10.5px; letter-spacing: .16em; color: var(--muted);
+    padding-bottom: 12px; margin-bottom: 4px; border-bottom: 1px solid var(--line-2);
+  }
+  .points ol { list-style: none; counter-reset: pt; }
+  .points li {
+    counter-increment: pt;
+    display: grid; grid-template-columns: 34px 1fr; gap: 6px; align-items: baseline;
+    padding: 14px 0; border-bottom: 1px solid var(--line);
+    font-size: 15px; line-height: 1.9; color: var(--ink-2);
+  }
+  .points li:last-child { border-bottom: 0; }
+  .points li::before {
+    content: counter(pt, decimal-leading-zero);
+    font-family: var(--sa); font-size: 10.5px; letter-spacing: .1em; color: var(--accent);
+  }
+
+  .how {
+    margin: 10px 0 56px; max-width: 68ch;
+    background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+    border-radius: var(--r); padding: 22px 26px;
+  }
+  .how-h { font-family: var(--sa); font-size: 10.5px; letter-spacing: .16em; color: var(--accent); margin-bottom: 10px; }
+  .how p { font-size: 14px; line-height: 1.95; color: var(--ink); }
+</style>

@@ -1,0 +1,64 @@
+---
+import Base from '../../layouts/Base.astro';
+import WorldCard from '../../components/WorldCard.astro';
+import Subscribe from '../../components/Subscribe.astro';
+import { listWorld, listReports } from '../../lib/content';
+import { REGIONS } from '../../lib/world';
+
+const world = await listWorld();
+const reports = await listReports();
+const latest = reports[0];
+---
+
+<Base
+  title="世界の定点"
+  description="北米・欧州・ロシア・中国・インド・中東の6つの窓から、金・ドル・米金利の読みを毎週同じ形で観測し、翌週に機械で答え合わせする。海外の市場メディアが同じ週をどう説明したかを横並びで記録する週次の定点観測。"
+  breadcrumbs={[{ name: '世界の定点' }]}
+  quotes={latest?.data.snapshot ?? []}
+  mastDate={latest?.data.date}
+  mastNo={latest?.data.no}
+>
+  <div class="wrap">
+    <header class="phead">
+      <h1>世界の定点</h1>
+      <p>
+        {REGIONS.map((r) => r.label).join('・')}の6つの窓を固定し、各地域の媒体が金・ドル・米金利をその週どう説明したかを、
+        同じ3つの問いで毎週記録します。論調は強気・中立・弱気で残し、翌週に金・ドル指数・米10年債の前週比で機械的に答え合わせします。
+        読めなかった窓は「未確認」のまま出し、近い媒体で埋めません。
+      </p>
+      <div class="count num">全 {world.length} 件</div>
+    </header>
+
+    {world.length > 0 ? (
+      <div class="wk">
+        {world.map((entry) => <WorldCard entry={entry} />)}
+      </div>
+    ) : (
+      <p class="empty">世界の定点はまだ公開されていません。</p>
+    )}
+
+    <Subscribe />
+  </div>
+</Base>
+
+<style>
+  .phead { padding: 48px 0 34px; border-bottom: 1px solid var(--line); }
+  h1 {
+    font-family: var(--se);
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: 18px;
+  }
+  .phead p { font-size: 15.5px; line-height: 2; font-weight: 400; color: var(--ink-2); max-width: 58ch; }
+  .count { font-size: 12px; color: var(--muted); margin-top: 18px; }
+  .wk {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 44px 0 60px;
+    border-bottom: 1px solid var(--line);
+  }
+  @media (max-width: 860px) { .wk { grid-template-columns: 1fr; } }
+  .empty { padding: 80px 0; text-align: center; color: var(--muted); border-bottom: 1px solid var(--line); }
+</style>

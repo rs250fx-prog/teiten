@@ -1,0 +1,72 @@
+{
+  "_comment": "「世界の定点」の論調の取得元（docs/SPEC.md §5 world）。主が取れなければ代替、代替も取れなければ unknown。これ以外の媒体を使わない。src/config.ts の WORLD_SOURCES と tools/new-world.py・check-report.py が同じファイルを読む。list は当週の記事 URL を拾う一覧、kinds はその一覧で探す記事の種類（見出しの手がかり）。",
+  "regions": [
+    {
+      "region": "na",
+      "label": "北米",
+      "primary": [
+        { "name": "Kitco News", "host": "www.kitco.com", "list": "https://www.kitco.com/news", "kinds": ["gold price", "Fed"] },
+        { "name": "investingLive", "host": "investinglive.com", "list": "https://investinglive.com/", "kinds": ["dollar", "Treasury", "yields"] }
+      ],
+      "fallback": [
+        { "name": "ZeroHedge", "host": "www.zerohedge.com", "list": "https://www.zerohedge.com/" },
+        { "name": "MarketPulse", "host": "www.marketpulse.com", "list": "https://www.marketpulse.com/" }
+      ]
+    },
+    {
+      "region": "eu",
+      "label": "欧州",
+      "primary": [
+        { "name": "ING Think", "host": "think.ing.com", "list": "https://think.ing.com/", "kinds": ["FX Daily", "Rates Spark"] },
+        { "name": "FXStreet", "host": "www.fxstreet.com", "list": "https://www.fxstreet.com/news", "kinds": ["Gold", "US Dollar Index"] }
+      ],
+      "fallback": [
+        { "name": "Saxo", "host": "www.home.saxo", "list": "https://www.home.saxo/insights" },
+        { "name": "Pound Sterling Live", "host": "www.poundsterlinglive.com", "list": "https://www.poundsterlinglive.com/" }
+      ]
+    },
+    {
+      "region": "ru",
+      "label": "ロシア",
+      "primary": [
+        { "name": "ProFinance.ru", "host": "www.profinance.ru", "list": "https://www.profinance.ru/news/", "kinds": ["золото", "доллар", "ФРС"] }
+      ],
+      "fallback": [
+        { "name": "Finam", "host": "www.finam.ru", "list": "https://www.finam.ru/analysis/conews/rsspoint/" },
+        { "name": "Interfax", "host": "www.interfax.ru", "list": "https://www.interfax.ru/business/" }
+      ]
+    },
+    {
+      "region": "cn",
+      "label": "中国",
+      "primary": [
+        { "name": "汇通財経 FX678", "host": "www.fx678.com", "list": "https://www.fx678.com/", "kinds": ["黄金", "美元", "美联储"] }
+      ],
+      "fallback": [
+        { "name": "華爾街見聞", "host": "wallstreetcn.com", "list": "https://wallstreetcn.com/" },
+        { "name": "東方財富", "host": "www.eastmoney.com", "list": "https://www.eastmoney.com/" }
+      ]
+    },
+    {
+      "region": "in",
+      "label": "インド",
+      "primary": [
+        { "name": "Business Today", "host": "www.businesstoday.in", "list": "https://www.businesstoday.in/personal-finance/investment", "kinds": ["gold price", "rupee"] }
+      ],
+      "fallback": [
+        { "name": "Goodreturns", "host": "www.goodreturns.in", "list": "https://www.goodreturns.in/gold-rates/" }
+      ]
+    },
+    {
+      "region": "me",
+      "label": "中東",
+      "primary": [
+        { "name": "Economies.com", "host": "www.economies.com", "list": "https://www.economies.com/", "kinds": ["gold", "US dollar"] }
+      ],
+      "fallback": [
+        { "name": "Argaam", "host": "www.argaam.com", "list": "https://www.argaam.com/en" },
+        { "name": "Zawya", "host": "www.zawya.com", "list": "https://www.zawya.com/en/markets" }
+      ]
+    }
+  ]
+}

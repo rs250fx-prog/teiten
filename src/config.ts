@@ -123,10 +123,32 @@ export const SUBSCRIBE_ACTION = '';
 export const NAV = [
   { href: '/reports/', label: 'デイリーレポート' },
   { href: '/weekly/', label: '週次まとめ' },
+  { href: '/world/', label: '世界の定点' },
   { href: '/topics/', label: 'トピック' },
   { href: '/review/', label: '答え合わせ' },
   { href: '/about/', label: 'このメディアについて' },
 ] as const;
+
+/**
+ * 「世界の定点」の論調の取得元（窓ごとの主／代替の媒体とホスト）。
+ *
+ * 実体は `src/data/world-sources.json`。Python 側（`tools/new-world.py`・`tools/check-report.py`）も
+ * 同じファイルを読むので、ここに書き写さない。主が取れなければ代替、代替も取れなければ unknown。
+ * これ以外の媒体を窓の出典にしない（docs/SPEC.md §5 world）。
+ */
+import worldSources from './data/world-sources.json';
+export interface WorldSource {
+  name: string;
+  host: string;
+  list: string;
+  kinds?: string[];
+}
+export const WORLD_SOURCES: {
+  region: string;
+  label: string;
+  primary: WorldSource[];
+  fallback: WorldSource[];
+}[] = worldSources.regions;
 
 /**
  * トピックページの説明文。キーはタグ名そのもの（tagSlug を通す前）。

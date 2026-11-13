@@ -66,7 +66,7 @@ let badSources = 0;
 let sourceBlocks = 0;
 for (const page of pages) {
   const rel = path.relative(DIST, page).split(path.sep).join('/');
-  if (!/^(reports|weekly)\/[^/]+\/index\.html$/.test(rel)) continue;
+  if (!/^(reports|weekly|world)\/[^/]+\/index\.html$/.test(rel)) continue;
   const html = fs.readFileSync(page, 'utf-8');
 
   if (/<p>\s*情報元：\s*<\/p>/.test(html)) {

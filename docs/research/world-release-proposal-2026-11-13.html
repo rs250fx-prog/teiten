@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>「世界の定点」リリース提案書（2026-11-13）</title>
+<style>
+/* A4縦・白地。主色は青、強調は朱を最小限。Edge ヘッドレスで PDF 化する（build-proposal.py） */
+@page { size: A4; margin: 16mm 17mm 16mm 17mm; }
+:root {
+  --ink: #1c1b18; --muted: #5a574f; --line: #d9d5cb; --line-2: #b9b4a7;
+  --blue: #1f4e9c; --blue-bg: #eef3fb; --red: #d24a1e; --bg2: #f5f3ee;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: #fff; color: var(--ink);
+  font-family: "Yu Gothic UI", "Yu Gothic", "Meiryo", "Hiragino Sans", system-ui, sans-serif;
+  font-size: 10pt; line-height: 1.6; }
+h1, h2, h3 { line-height: 1.4; margin: 0; }
+p { margin: 0 0 .7em; }
+ul, ol { margin: 0 0 .8em; padding-left: 1.5em; }
+li { margin: .18em 0; }
+strong { font-weight: 700; }
+small { font-size: 8.5pt; color: var(--muted); }
+a { color: var(--blue); text-decoration: none; }
+code { font-family: Consolas, "Courier New", monospace; font-size: .9em; background: var(--bg2); padding: 0 .3em; border-radius: 2px; }
+table { border-collapse: collapse; width: 100%; font-size: 9pt; line-height: 1.5; margin: .3em 0 .8em; }
+th, td { border-bottom: 1px solid var(--line); padding: 4px 6px; text-align: left; vertical-align: top; }
+thead th { background: var(--blue-bg); color: var(--blue); font-weight: 700; border-bottom: 1px solid var(--blue); font-size: 9pt; letter-spacing: .04em; }
+tbody th { font-weight: 700; white-space: nowrap; }
+.page { page-break-after: always; }
+.page:last-child { page-break-after: auto; }
+.sec { display: flex; align-items: baseline; gap: 10px; border-bottom: 2px solid var(--blue); padding-bottom: 6px; margin: 0 0 14px; }
+.sec .no { font-size: 9pt; color: var(--blue); letter-spacing: .14em; font-weight: 700; }
+.sec h2 { font-size: 15pt; color: var(--blue); }
+h3 { font-size: 11.5pt; margin: 14px 0 6px; padding-left: 8px; border-left: 3px solid var(--blue); }
+.lead { font-size: 11pt; margin-bottom: 1em; }
+.box { border: 1px solid var(--line-2); background: var(--bg2); padding: 10px 14px; margin: .6em 0 1em; }
+.box.blue { background: var(--blue-bg); border-color: var(--blue); }
+.box h4 { margin: 0 0 4px; font-size: 10pt; color: var(--blue); letter-spacing: .06em; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.kv { display: grid; grid-template-columns: 7em 1fr; gap: 4px 12px; font-size: 10pt; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; }
+.tag { display: inline-block; font-size: 8.5pt; padding: 0 7px; border-radius: 3px; border: 1px solid var(--line-2); margin-right: 4px; white-space: nowrap; }
+.tag.ok { background: var(--blue); color: #fff; border-color: var(--blue); }
+.tag.ng { color: var(--red); border-color: var(--red); }
+.tag.na { color: var(--muted); }
+.em { color: var(--red); font-weight: 700; }
+.foot { position: running(foot); }
+/* 表紙 */
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: space-between; }
+.cover .brand { font-size: 10pt; letter-spacing: .3em; color: var(--blue); font-weight: 700; }
+.cover h1 { font-size: 26pt; margin: 14px 0 10px; letter-spacing: .02em; }
+.cover .sub { font-size: 13pt; color: var(--muted); }
+.cover .rule { border-top: 2px solid var(--blue); width: 60mm; margin: 26px 0; }
+.cover .meta { font-size: 10pt; line-height: 1.9; }
+.cover .meta b { display: inline-block; width: 6em; color: var(--muted); font-weight: 400; }
+.step { display: grid; grid-template-columns: 2.2em 1fr; gap: 8px; margin: 0 0 6px; }
+.step .n { font-weight: 700; color: var(--blue); font-size: 12pt; line-height: 1.3; }
+.pg { font-size: 8pt; color: var(--muted); text-align: right; border-top: 1px solid var(--line); padding-top: 3px; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<!-- 表紙 -->
+<section class="page cover">
+  <div>
+    <div class="brand">TEITEN ／ teiten.trade</div>
+    <h1>「世界の定点」リリース提案書</h1>
+    <div class="sub">6つの地域の窓から、金・ドル・米金利の読みと現物の動きを毎週同じ形で観測する</div>
+    <div class="rule"></div>
+    <div class="meta">
+      <div><b>提出日</b>2026年11月13日（金）</div>
+      <div><b>宛先</b>Financial and Marketing M16　代表</div>
+      <div><b>作成</b>TEITEN 編集・実装担当（AI）</div>
+      <div><b>対象</b>新コンテンツ <code>/world/</code>（週次）の本番リリース</div>
+      <div><b>根拠文書</b><code>docs/STRATEGY.md</code>・<code>docs/SPEC.md</code> §5「world」§7「情報元のアコーディオン」・<code>docs/HANDOVER.md</code>・<code>docs/research/</code></div>
+    </div>
+  </div>
+  <div class="box blue">
+    <h4>この提案書で決めていただきたいこと</h4>
+    <ol style="margin:0">
+      <li>初号の対象週を <strong>第46週（11/9〜11/13、手作り）</strong>とし、定期実行は第47週（11/21 土）から始めること</li>
+      <li>出典は本文を「情報元：」のアコーディオンに統一し、各窓のカードの出典リンクは露出のままにすること</li>
+      <li>現物の層（GLD・インド）は初号に入れず、定期実行が2週安定してから足すこと</li>
+    </ol>
+  </div>
+</section>
+
+<!-- 1 エグゼクティブサマリー -->
+<section class="page">
+  <div class="sec"><span class="no">01</span><h2>エグゼクティブサマリー</h2></div>
+  <p class="lead">「世界の定点」は、TEITEN の編集方針「同じ観測点を同じ形で記録する」を、銘柄の軸から地域の軸へ広げる新コンテンツです。設計と試作は10月30日に完了し、仕様書への反映も済んでいます。<strong>実装はまだ着手しておらず、本提案はリリースまでの順番と判断事項を確認するものです。</strong></p>
+
+  <div class="cols">
+    <div>
+      <h3>なぜ今やるか</h3>
+      <ul>
+        <li>戦略（STRATEGY §2）は「当面の投資先は広告の配置ではなく、読者の満足度を上げるサイト拡張」と定めている。本件はその拡張に当たる</li>
+        <li>海外メディアの地域別の読みを横断して毎週同じ形で追う場所は国内に無い。差別化が明確</li>
+        <li>論調を翌週に機械で答え合わせする透明性が、読者が広告・商材の案内を信用する根拠になる</li>
+        <li>取得元（50媒体）は実際に fetch して確認済み。週次ルーティンに相乗りでき、新しい定期実行を作らない</li>
+      </ul>
+    </div>
+    <div>
+      <h3>いまの状態</h3>
+      <dl class="kv">
+        <dt>設計</dt><dd><span class="tag ok">完了</span>SPEC §5 world（10/30、試作の7点を反映済み）</dd>
+        <dt>試作</dt><dd><span class="tag ok">完了</span>第44週を論調の層のみで1本（ビルド対象外）</dd>
+        <dt>取得元</dt><dd><span class="tag ok">完了</span>50媒体の収集可否を全件確認</dd>
+        <dt>実装</dt><dd><span class="tag ng">未着手</span>コレクション・ページ・道具・検査すべて</dd>
+        <dt>初号</dt><dd><span class="tag ng">未実施</span>11/7 予定の第45週は作っていない</dd>
+        <dt>定期実行</dt><dd><span class="tag na">未変更</span>ROUTINES.md と週次のプロンプト</dd>
+      </dl>
+    </div>
+  </div>
+
+  <h3>提案の要旨</h3>
+  <table>
+    <thead><tr><th style="width:9em">項目</th><th>提案</th></tr></thead>
+    <tbody>
+      <tr><th>初号</th><td><strong>第46週（対象 11/9〜11/13）を手作りで出す。</strong>仕様の「第45週から」は実態に合わせて書き直す</td></tr>
+      <tr><th>範囲</th><td>第1段階＝論調の層だけ。現物の層は定期実行が安定してから GLD（北米）とインドの順に足す</td></tr>
+      <tr><th>出典</th><td>11/6 に入った「情報元のアコーディオン」（SPEC §7）に合わせる。本文は自動で閉じ、窓カードの出典リンクは露出のまま</td></tr>
+      <tr><th>定期実行</th><td>週次ルーティン（土曜 14:00 JST）の 7-D に相乗り。第47週（11/21）から。週次本体と同じコミットで下書き push し、人が <code>/admin</code> から公開</td></tr>
+      <tr><th>答え合わせ</th><td>人の印象ではなく、週次 JSON の前週比で機械判定（金・ドル指数 ±0.5%、米10年 ±5bp）。第47週の号から前週分を出す</td></tr>
+      <tr><th>日次への移行</th><td>unknown の論点が18マス中3つ以下の週が4週続いてから検討。それまで週次のまま</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box">
+    <h4>先に確認が要ること</h4>
+    <p style="margin:0">リポジトリの記事は 11/6 の日次 No.34 で止まっており、11/7 の週次（第45週）と 11/9 以降の日次がありません。<strong>世界の定点は週次本体と同じコミットで出す設計なので、週次が出ていない週は世界の定点も出ません。</strong>定期実行の状態を先に確かめる必要があります。</p>
+  </div>
+  <div class="pg">「世界の定点」リリース提案書　1</div>
+</section>
+
+<!-- 2 戦略上流 -->
+<section class="page">
+  <div class="sec"><span class="no">02</span><h2>目的と戦略（上流）</h2></div>
+
+  <h3>TEITEN の目的と収益の方針</h3>
+  <table>
+    <thead><tr><th style="width:10em">項目</th><th>方針（STRATEGY.md、2026-10-01 決定）</th></tr></thead>
+    <tbody>
+      <tr><th>目的</th><td>ブランディング／情報のログ化／ファンの囲い込み。10月からこれに<strong>中長期の収益獲得</strong>を加えた</td></tr>
+      <tr><th>収入源</th><td>アフィリエイト（国内の登録業者のみ、PR表記）と、自分の商材（ゴゴジャン・note）への誘導。<strong>サイト内に認証・決済は持たない</strong></td></tr>
+      <tr><th>保留</th><td>メール配信・会員制。再開時は金融庁の監督指針（Ⅶ-3-1(2)②イ）に照らし、登録の要否を財務局か弁護士に確認してから</td></tr>
+      <tr><th>投資先</th><td>「当面の投資先は広告の配置ではなく、<strong>読者の満足度を上げるサイト拡張</strong>」</td></tr>
+      <tr><th>やらないこと</th><td>口座比較のキーワードで大手と競う／個別銘柄・売買タイミングの推奨／日次本文への広告挿入</td></tr>
+    </tbody>
+  </table>
+
+  <h3>「世界の定点」が戦略に果たす役割</h3>
+  <div class="cols">
+    <div class="box">
+      <h4>差別化</h4>
+      <p style="margin:0">北米・欧州・ロシア・中国・インド・中東の媒体が、同じ週の金・ドル・米金利をどう説明したかを横並びで記録する。国内にこの形の場所は無い。「海外のFX情報 TOP50」の調査（10/30）で、AI が実際に読める媒体を地域バランスで50本確保した</p>
+    </div>
+    <div class="box">
+      <h4>信用の根拠</h4>
+      <p style="margin:0">論調をログにし、翌週に機械で答え合わせする。「数値を創作しない・取得元を開示する・シナリオを答え合わせする」という既存の運用の延長で、読者が広告や商材の案内を信用する土台になる</p>
+    </div>
+    <div class="box">
+      <h4>囲い込み</h4>
+      <p style="margin:0">毎週同じ形で積み上がるので、前週比・前月比の読み方が育つ。日次（何が起きたか）・週次（数表）に対し、本件は「どこで、どう読まれ、現物はどう動いたか」を扱い、既存記事と重ならない</p>
+    </div>
+    <div class="box">
+      <h4>運用コスト</h4>
+      <p style="margin:0">新しい定期実行を作らず、週次（土曜 14:00 JST）の手順に 7-D として相乗りする。1回の fetch は主6本＋代替2本まで。利用量の上限に収まる範囲で設計した</p>
+    </div>
+  </div>
+
+  <h3>外せない制約</h3>
+  <ul>
+    <li><strong>個別の売買推奨を書かない。</strong>投資助言・代理業の登録が無い。要約は自分の言葉、引用は短く出典つき</li>
+    <li><strong>数値を創作しない。</strong>窓に数値は書かず、値は週次の JSON と固定系列から描く。6媒体の記事から数字を拾わない</li>
+    <li><strong>出典を開示する。</strong>金融情報は YMYL 領域にあたり、発行元・発行日・出典の明示が検索評価に直結する</li>
+    <li><strong>取れなかった窓は「未確認」。</strong>近い媒体や検索結果で埋めない。読んでいない媒体を出典にしない</li>
+  </ul>
+  <div class="pg">「世界の定点」リリース提案書　2</div>
+</section>
+
+<!-- 3 編集方針と仕様 -->
+<section class="page">
+  <div class="sec"><span class="no">03</span><h2>編集方針と仕様の要点（下流）</h2></div>
+
+  <h3>編集方針：2層の定点</h3>
+  <p>6つの窓を固定し、各窓を2段で毎週観測する。<strong>論調の層</strong>は、その地域の媒体が金・ドル・米金利をどう読んだか。<strong>現物の層</strong>は、その地域の金の実需を表す固定系列1本。「論調は強気だが現物は売られている」という食い違いが記事の材料になる。当初は別ページだった論調（A）と現物フロー（B）を、軸が同じ6地域なので1ページに合併した（10/30）。</p>
+
+  <table>
+    <thead><tr><th>窓</th><th>論調の主媒体</th><th>代替</th><th>現物の系列（周期）</th><th>状態</th></tr></thead>
+    <tbody>
+      <tr><th>北米 na</th><td>Kitco News・investingLive</td><td>ZeroHedge・MarketPulse</td><td>金ETF（GLD）保有量（週次）</td><td>系列は今すぐ使える</td></tr>
+      <tr><th>欧州 eu</th><td>ING Think（FX Daily / Rates Spark）・FXStreet</td><td>Saxo・Pound Sterling Live</td><td>スイス税関の金輸出入（月次）</td><td>取り方の確認が要る</td></tr>
+      <tr><th>ロシア ru</th><td>ProFinance.ru</td><td>Finam（RSS）・Interfax</td><td>ロシア中銀の金準備（月次）</td><td>取り方の確認が要る</td></tr>
+      <tr><th>中国 cn</th><td>汇通財経 FX678（www）</td><td>華爾街見聞・東方財富</td><td>上海プレミアム（週次）</td><td>取り方の確認が要る</td></tr>
+      <tr><th>インド in</th><td>Business Today（金の記事一覧）</td><td>Goodreturns</td><td>24K小売価格と国際価格の差（日次）</td><td>系列は今すぐ使える。論調は不安定</td></tr>
+      <tr><th>中東 me</th><td>Economies.com</td><td>Argaam・Zawya</td><td>湾岸中銀の金購入（四半期、WGC）</td><td>四半期分として置く</td></tr>
+    </tbody>
+  </table>
+
+  <h3>仕様の要点（SPEC §5 world）</h3>
+  <table>
+    <thead><tr><th style="width:9em">項目</th><th>内容</th></tr></thead>
+    <tbody>
+      <tr><th>データ</th><td><code>src/content/world/2026-wNN.md</code>。週次と同じ項目に <code>windows</code>（6件固定・順序固定）・<code>physicalNotes</code>・<code>review</code> を足す。<strong>frontmatter に数値は書かない</strong></td></tr>
+      <tr><th>論調</th><td><code>stance</code> は bull / neutral / bear / <strong>split</strong>（1窓2媒体で向きが逆）/ <strong>unknown</strong>（論点ごとの欠け）。要約は全角80字以内の自分の言葉。引用は30語以内で出典 URL 必須</td></tr>
+      <tr><th>窓の状態</th><td>確定＝3論点のうち1つ以上取れた窓。未確認＝3論点とも unknown。近い媒体で埋めない</td></tr>
+      <tr><th>答え合わせ</th><td><code>tools/review-world.py</code> が前週の論調と当週の週次 JSON の前週比で機械判定。閾値は金・ドル指数 ±0.5%、米10年 ±5bp。split / unknown は対象外。手で書いた判定を優先しない</td></tr>
+      <tr><th>取得元</th><td><code>src/config.ts</code> の <code>WORLD_SOURCES</code> に主／代替を固定し、一覧ページでなく記事の種類を持つ。<code>check-report.py</code> が <code>media[].url</code> のホストを照合。1回の fetch は主6本＋代替2本まで</td></tr>
+      <tr><th>時刻の基準</th><td>対象週の月曜 0:00 JST から実行時刻（土曜 14:00 JST）までに読めた記事。記事 URL の日付で週を決め、実行後の記事は翌週へ</td></tr>
+      <tr><th>ページ</th><td>要点 → 6窓のカード（上段：論調タグ・要約・出典リンク、下段：現物の値・時点）→ 論調の分布（6×3、split は割れの色、unknown は空）→ 現物の定点 → 前週の答え合わせ → 総括（600字まで）→ 情報元。NAV には「答え合わせ」の前に追加</td></tr>
+      <tr><th>定期実行</th><td>週次の 7-D：(1) fetch-world → (2) 主6本 → (3) 代替 → (4) 雛形 → (5) review-world → (6) check-report → (7) draft のまま push。<strong>週次本体と同じコミット</strong>。週次が休止なら出さない</td></tr>
+      <tr><th>段階</th><td>1. 論調の層だけで週次開始　2. 現物の層を GLD・インドから順に　3. 日次移行は unknown が18マス中3つ以下の週が4週続いてから（論調の層のみ）</td></tr>
+    </tbody>
+  </table>
+  <div class="pg">「世界の定点」リリース提案書　3</div>
+</section>
+
+<!-- 4 出典アコーディオン -->
+<section class="page">
+  <div class="sec"><span class="no">04</span><h2>出典アコーディオン仕様への適合</h2></div>
+
+  <p class="lead">11月6日のコミット <code>a07d624</code> で、本文の情報元を閉じたアコーディオンにする仕様が入りました（SPEC §7「情報元のアコーディオン」、<code>src/rehype-sources.mjs</code>）。世界の定点はこの仕様の後に実装するため、最初から合わせます。</p>
+
+  <h3>既存仕様の要点</h3>
+  <ul>
+    <li>本文中の「情報元：」だけの段落と直後のリストを、ビルド時に <code>&lt;details class="sources"&gt;</code> に変換する。初期状態は閉じる。<strong>執筆側の書式は変えない</strong></li>
+    <li>見出しは「情報元：媒体名、媒体名、媒体名 ほかN件」。媒体名はリンク文字列の「（」より前を重複を除いて最大3つ。「見出しの媒体数＋N＝リストの行数」</li>
+    <li>JavaScript なし。出典は HTML に最初から含まれる。開閉アニメーションを付けない。印刷では開く</li>
+    <li>直後がリストでなければ変換しない。<code>check-report.py</code>（原稿）と <code>check-html.mjs</code>（ビルド後、件数の一致）が検査する</li>
+    <li>SEO は Google の公式文書で確認済み（スパムポリシーの違反例に当たらず、モバイルファーストのガイドも省スペースの手段に挙げている）</li>
+  </ul>
+
+  <h3>世界の定点への当てはめ</h3>
+  <table>
+    <thead><tr><th style="width:11em">場所</th><th>扱い</th><th style="width:9em">実装の要否</th></tr></thead>
+    <tbody>
+      <tr><th>本文末の出典</th><td>「情報元：」＋リンク付きリスト（「媒体名（記事名、日付）」の形）で書く。rehype が全号に効くので自動で閉じる。SPEC §5 の並びの「→ 出典」を「→ 情報元（§7）」に改める</td><td><span class="tag ok">不要</span>SPEC の文言のみ</td></tr>
+      <tr><th>窓カードの出典リンク</th><td>frontmatter（<code>media</code>・<code>quote.url</code>）からページ部品が描く。本文ではないので変換対象外。1窓あたり1〜2本なので、閉じる理由（1号に50行近い出典が本文を切る）が当てはまらず<strong>露出のまま</strong></td><td><span class="tag ok">不要</span></td></tr>
+      <tr><th>第44週の試作</th><td>「## 出典」の見出しに素の URL を並べており、§7 にも §9「素のURL列挙ではなくリンク付きリストで書く」にも合っていない。雛形（<code>new-world.py</code>）はリンク付きリスト＋「情報元：」で出す</td><td><span class="tag ng">要</span>雛形の書式</td></tr>
+      <tr><th>検査</th><td>既存の <code>check-report.py</code>・<code>check-html.mjs</code> がそのまま効く。world 用に足すのは窓・stance・ホスト照合などの検査で、出典の形式の検査は共通</td><td><span class="tag ok">共通</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="box blue">
+    <h4>結論</h4>
+    <p style="margin:0">出典のアコーディオン化は、世界の定点に追加の実装を求めない。<strong>本文の書式を既存の規則に合わせ、カードの出典は露出のままにする</strong>。この2点を SPEC §5 に1行で明記する。</p>
+  </div>
+  <div class="pg">「世界の定点」リリース提案書　4</div>
+</section>
+
+<!-- 5 リリース計画 -->
+<section class="page">
+  <div class="sec"><span class="no">05</span><h2>リリース計画</h2></div>
+
+  <h3>作業の順（HANDOVER の実装順に出典の適合を足したもの）</h3>
+  <div class="step"><div class="n">0</div><div><strong>定期実行の状態を確かめる。</strong>第45週の週次と 11/9 以降の日次が無い理由を確認し、週次が土曜 14:00 に動く状態に戻す。世界の定点は週次本体と同じコミットで出るため、ここが前提</div></div>
+  <div class="step"><div class="n">1</div><div><strong>SPEC §5 world の文言。</strong>「出典」を「情報元（§7）」に、初号を第46週・定期実行を第47週からに、カードの出典は露出のままと明記。更新履歴に「なぜ」を書く</div></div>
+  <div class="step"><div class="n">2</div><div><strong>データと設定。</strong><code>content.config.ts</code> に <code>world</code> コレクション（windows 6件固定、stance 5値、physicalNotes、review）。<code>config.ts</code> に <code>WORLD_SOURCES</code> と NAV の「世界の定点」</div></div>
+  <div class="step"><div class="n">3</div><div><strong>ページ。</strong><code>pages/world/index.astro</code>（一覧は週次と同じ骨組み）と <code>[...slug].astro</code>。論調の分布（6×3）は新規部品。現物の節は JSON が無い週は描かない</div></div>
+  <div class="step"><div class="n">4</div><div><strong>道具と検査。</strong><code>tools/new-world.py</code>（雛形。情報元はリンク付きリスト）・<code>tools/review-world.py</code>（split / unknown は飛ばす）・<code>check-report.py</code> の world 検査（6窓、stance の enum、要約の字数、ホスト照合、review の突き合わせ、未確認の窓に gold 以下が無いか）</div></div>
+  <div class="step"><div class="n">5</div><div><strong>初号（第46週、対象 11/9〜11/13）を手作り。</strong>論調の層だけ。インドは Business Today の金の記事一覧ページをここで確かめ、<code>WORLD_SOURCES</code> の list を決める。下書きで push し、<code>/admin</code> から公開</div></div>
+  <div class="step"><div class="n">6</div><div><strong>クラウド実行環境から主6本を fetch できるか確認</strong>してから、<code>docs/ROUTINES.md</code> 週次の 7-D と週次ルーティンのプロンプトに追加。第47週（11/21 土）から定期実行。前週分の答え合わせもこの号から</div></div>
+  <div class="step"><div class="n">7</div><div><strong>現物の層。</strong><code>docs/SOURCES.md</code> に系列の節を足してから <code>tools/fetch-world.py --write</code>。先に GLD（週次の flows と同じ出所）とインド（Goodreturns 24K × 国際価格 × ドルルピー）。定期実行が2週安定した第49週（12/5）を目安に</div></div>
+
+  <h3>日程の目安</h3>
+  <table>
+    <thead><tr><th style="width:9em">日付</th><th>内容</th><th style="width:7em">担当</th></tr></thead>
+    <tbody>
+      <tr><th>11/13（金）</th><td>本提案の確認。定期実行の状態確認（手順0）</td><td>代表・AI</td></tr>
+      <tr><th>11/14〜16</th><td>手順1〜4の実装、第46週の初号を手作り、下書き push</td><td>AI</td></tr>
+      <tr><th>11/16（月）まで</th><td>初号を <code>/admin</code> で確認して公開。NAV に「世界の定点」が出る</td><td>代表</td></tr>
+      <tr><th>11/17〜20</th><td>クラウド fetch の確認、ROUTINES の 7-D 追加、ルーティンの更新</td><td>AI</td></tr>
+      <tr><th>11/21（土）</th><td>第47週を定期実行で出す。第46週の答え合わせを初めて載せる</td><td>定期実行・代表が公開</td></tr>
+      <tr><th>12/5（土）〜</th><td>現物の層を GLD・インドから追加（手順7）</td><td>AI</td></tr>
+    </tbody>
+  </table>
+  <div class="pg">「世界の定点」リリース提案書　5</div>
+</section>
+
+<!-- 6 リスクと決裁 -->
+<section class="page">
+  <div class="sec"><span class="no">06</span><h2>リスクと決裁事項</h2></div>
+
+  <h3>リスクと手当て</h3>
+  <table>
+    <thead><tr><th style="width:13em">リスク</th><th>手当て</th></tr></thead>
+    <tbody>
+      <tr><th>クラウドの実行環境で媒体が読めない</th><td>手元で読めてもクラウドでは 403 等で変わりうる（別案件で未解決の例あり）。手順6で主6本を先に確かめ、読めない窓は代替か unknown にする。埋めない</td></tr>
+      <tr><th>インドの論調が取れ続けない</th><td>試作では未確認。unknown のまま出す設計で、日次移行の条件（18マス中3つ以下）に数えて可視化する。媒体の候補は少なく、無理に増やさない</td></tr>
+      <tr><th>媒体の閉鎖・改名</th><td>DailyFX 閉鎖・ForexLive 改名の例がある。<code>WORLD_SOURCES</code> に主／代替を持ち、ホスト照合で気づけるようにする。四半期ごとに50本の一覧を見直す</td></tr>
+      <tr><th>週次本体が止まると出ない</th><td>設計どおり（片方だけ出た週を作らない）。日次・週次の定期実行の健全性が前提。手順0で確認</td></tr>
+      <tr><th>論調の要約が翻訳の転載になる</th><td>要約は自分の言葉で80字以内、引用は30語以内で出典 URL 必須。検査が字数を見る。著作権と YMYL の両面で守る</td></tr>
+      <tr><th>利用量</th><td>1回の実行で fetch は8本まで。日次（8:00）には乗せず、週次だけ。日次移行は条件を満たしてから判断する</td></tr>
+    </tbody>
+  </table>
+
+  <h3>決裁事項</h3>
+  <table>
+    <thead><tr><th style="width:2em">#</th><th>決めていただきたいこと</th><th style="width:16em">提案</th></tr></thead>
+    <tbody>
+      <tr><th>1</th><td>初号の対象週と定期実行の開始週</td><td><strong>第46週を手作り、第47週から定期実行</strong></td></tr>
+      <tr><th>2</th><td>出典の扱い</td><td><strong>本文は「情報元：」アコーディオン、カードは露出のまま</strong></td></tr>
+      <tr><th>3</th><td>現物の層の着手時期</td><td><strong>初号には入れず、第49週（12/5）を目安に GLD・インドから</strong></td></tr>
+      <tr><th>4</th><td>NAV の位置と表記</td><td>「答え合わせ」の前に「世界の定点」（SPEC どおり）</td></tr>
+      <tr><th>5</th><td>定期実行の停止の扱い</td><td>手順0で原因を確認してから着手（世界の定点の前提）</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box">
+    <h4>承認後の最初の作業</h4>
+    <p style="margin:0">手順0の確認と並行して、手順1（SPEC の文言）から手順4（道具と検査）までを進め、第46週の初号を下書きで push します。公開の判断は <code>/admin</code> で代表が行います。</p>
+  </div>
+  <div class="pg">「世界の定点」リリース提案書　6</div>
+</section>
+
+</body>
+</html>

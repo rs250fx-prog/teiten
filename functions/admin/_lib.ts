@@ -98,12 +98,20 @@ const WEEKLY_SECTIONS = [
   '## 週の核心テーマ', '## 今週の主要イベント振り返り',
   '## 今週の資金フロー構造', '## 来週の備え',
 ];
+// 世界の定点（docs/SPEC.md §5 world）。本文は総括と情報元だけ
+const WORLD_SECTIONS = ['## 総括'];
+
+export type Kind = 'daily' | 'weekly' | 'world';
+
+export function kindOf(path: string): Kind {
+  return path.includes('/weekly/') ? 'weekly' : path.includes('/world/') ? 'world' : 'daily';
+}
 
 /**
  * 公開してよいかを判定する。errors が空なら公開できる。
  * check-report.py のうち、公開の可否に直結する項目だけを見る。
  */
-export function validate(text: string, kind: 'daily' | 'weekly'): string[] {
+export function validate(text: string, kind: Kind): string[] {
   const fm = frontmatter(text);
   const bd = body(text);
   const errors: string[] = [];
@@ -115,7 +123,8 @@ export function validate(text: string, kind: 'daily' | 'weekly'): string[] {
   if (!desc) errors.push('description が空です');
   else if (desc.length < 80) errors.push(`description が${desc.length}字です（80字以上）`);
 
-  for (const sec of kind === 'daily' ? DAILY_SECTIONS : WEEKLY_SECTIONS) {
+  const sections = kind === 'daily' ? DAILY_SECTIONS : kind === 'weekly' ? WEEKLY_SECTIONS : WORLD_SECTIONS;
+  for (const sec of sections) {
     if (!bd.includes(sec)) errors.push(`節がありません: ${sec.replace(/^#+ /, '')}`);
   }
 
@@ -124,6 +133,20 @@ export function validate(text: string, kind: 'daily' | 'weekly'): string[] {
   if (/^\s*###\s*[①②③]\s*$/m.test(bd)) errors.push('見出しが未記入です');
   if (/^資金\s+→\s*$/m.test(bd)) errors.push('資金フローの行が未記入です');
   if (/^\s*https?:\/\/\S+\s*$/m.test(bd)) errors.push('素のURLがあります（リンク付きリストにする）');
+
+  if (kind === 'world') {
+    // 6つの窓が順にそろい、論調の値が5値のどれかで、summary が空でないこと。
+    // 入れ子の YAML を正規表現で読む最低限の検査。権威ある検査は check-report.py の check_world
+    const regions = [...fm.matchAll(/^\s*-\s*region:\s*(\w+)/gm)].map((m) => m[1]);
+    if (regions.join(',') !== 'na,eu,ru,cn,in,me') errors.push(`windows が6窓そろっていません（${regions.join(',')}）`);
+    const stances = [...fm.matchAll(/^\s*stance:\s*(\S+)/gm)].map((m) => m[1]);
+    for (const s of stances) {
+      if (!['bull', 'neutral', 'bear', 'split', 'unknown'].includes(s)) errors.push(`stance が不正です: ${s}`);
+    }
+    if (/^\s*summary:\s*""\s*$/m.test(fm) && !/stance:\s*unknown/.test(fm)) errors.push('summary が空の論点があります');
+    if (!bd.includes('情報元：')) errors.push('情報元がありません');
+    return errors;
+  }
 
   if (kind === 'daily') {
     const snaps = [...fm.matchAll(
@@ -164,7 +187,7 @@ export function validate(text: string, kind: 'daily' | 'weekly'): string[] {
 }
 
 export interface Item {
-  kind: 'daily' | 'weekly';
+  kind: Kind;
   slug: string;
   path: string;
   no: string;
@@ -175,8 +198,10 @@ export interface Item {
   errors: string[];
 }
 
+const URL_DIR: Record<Kind, string> = { daily: 'reports', weekly: 'weekly', world: 'world' };
+
 export function toItem(path: string, text: string): Item {
-  const kind: 'daily' | 'weekly' = path.includes('/weekly/') ? 'weekly' : 'daily';
+  const kind = kindOf(path);
   const fm = frontmatter(text);
   const slug = path.split('/').pop()!.replace(/\.md$/, '');
   return {
@@ -187,7 +212,7 @@ export function toItem(path: string, text: string): Item {
     date: field(fm, 'date') || field(fm, 'end'),
     title: field(fm, 'title'),
     draft: field(fm, 'draft') === 'true',
-    url: `https://teiten.trade/${kind === 'daily' ? 'reports' : 'weekly'}/${slug}/`,
+    url: `https://teiten.trade/${URL_DIR[kind]}/${slug}/`,
     errors: validate(text, kind),
   };
 }

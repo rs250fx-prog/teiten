@@ -14,12 +14,12 @@
 
 | | |
 |---|---|
-| ブランチ | `main`（`origin/main` と同期済み。`note/market_dashboard_*.svg` 3件の削除だけ未コミットのまま。意図を確認するまで触らない） |
-| 最新コミット | `d2d96a3` デイリー一覧の上部のタグ索引を削除。直前は `a07d624` 本文の情報元を、媒体名つきのアコーディオンに変更（内容は `docs/SPEC.md` の更新履歴 2026-11-06） |
+| ブランチ | `main`（`note/market_dashboard_*.svg` 3件の削除だけ未コミットのまま。意図を確認するまで触らない） |
+| 最新コミット | 「世界の定点」の実装と初号（2026-11-13。内容は `docs/SPEC.md` の更新履歴 2026-11-13）。**push は未実施**（push すると NAV に「世界の定点」が出る。初号は下書きなので一覧は空） |
 | 本番 | https://teiten.trade （`main` push で自動デプロイ。反映まで1〜2分） |
 | ビルド | 通る。`check-report.py` エラー0 |
-| 記事 | 日次35本（うち下書き1本）／週次6本（2026-11-06 時点のファイル数） |
-| 公開状態 | `IS_PUBLIC = true`。日次の下書き1本を除き公開済み |
+| 記事 | 日次39本／週次7本／世界の定点1本（下書き）（2026-11-13 時点のファイル数） |
+| 公開状態 | `IS_PUBLIC = true`。世界の定点の初号（`2026-w46`）は下書き。`/admin` から公開する |
 
 ### 作業前に必ず読むもの
 
@@ -242,15 +242,26 @@ insight.factset.com
 ユーザーに提案し、「1と2を対応したい」として**1（取得元）と2（答え合わせ）は完了**。
 残り2つは未着手。
 
-### 世界の定点（`world`）★設計済み・2026-10-30・ユーザー承認済み
+### 世界の定点（`world`）★実装済み・初号は下書き（2026-11-13）
 
 6 つの地域の窓（北米・欧州・ロシア・中国・インド・中東）を固定し、各窓を「論調の層」（媒体が金・ドル・米金利をどう読んだか。翌週に機械で答え合わせ）と
 「現物の層」（窓ごとに固定した系列1本。GLD・スイス税関・ロシア中銀・上海プレミアム・インド小売価格差・WGC）の2段で毎週観測する。
-設計は `docs/SPEC.md` §5「world」、媒体の一覧と収集可否は `docs/research/overseas-market-media-top50.md`。
-**第44週で 1 本試作済み**（`docs/research/world-sample-2026-w44.md`。論調の層だけ、ビルド対象外）。試作で見つかった 7 点（`split` / `unknown`、FX678 は `www`、
-インド・中東の主媒体の差し替え、ING は記事 URL 直取り、時刻の基準、日次移行の条件）は SPEC に反映済み。実装はこの試作の形に合わせる。
+設計は `docs/SPEC.md` §5「world」、媒体の一覧と収集可否は `docs/research/overseas-market-media-top50.md`、リリース提案書は `docs/research/world-release-proposal-2026-11-13.pdf`。
 
-実装の順（SPEC の段階 1〜2）：
+**2026-11-13 に実装した**（SPEC の更新履歴 2026-11-13）。コレクション・`WORLD_SOURCES`（実体は `src/data/world-sources.json`）・NAV・`/world/` の一覧と詳細・
+`tools/new-world.py`・`tools/review-world.py`・`check-report.py` の `check_world`・`/admin` の world 対応。初号 `src/content/world/2026-w46.md` を論調の層だけで手作りし、
+検査エラー 0・ビルド成功を確認した。**下書きのままなので、`/admin` から公開する。**
+
+残り：
+- **push**（未実施。push すると NAV に「世界の定点」が出る）
+- **クラウドの実行環境から `WORLD_SOURCES` の主 6 本を fetch できるか確かめる**（手元では 6 本とも読めた。クラウドでは 403 等で変わりうる）。
+  確かめてから `docs/ROUTINES.md` 週次の 7-D を登録済みのルーティン（`trig_016QTPqnayVK9vrrR6HSGWNu`）の文面に反映する。第47週（11/21 土）から定期実行
+- 現物の層（段階 2）：`docs/SOURCES.md` に系列の節を足してから `tools/fetch-world.py --write`（`src/data/world/<slug>.json`）を作る。先に GLD（週次の `flows` と同じ出所）と
+  インド（Goodreturns 24K × USAGOLD の金 × ドルルピー）。定期実行が 2 週安定した第49週（12/5）を目安に
+- インドの主媒体は今週も記事が無かった（市場面・投資面・商品面とも）。`world-sources.json` の `list` は投資面のまま。`unknown` が続く前提で、埋めない
+- 汇通財経の記事 URL は `www.fx678.com/C/...` と `news.fx678.com/...` の 2 系統がある。媒体のホスト照合は `media[].url` だけに掛けている（`quote.url` は照合しない）
+
+以下は実装前の順（記録として残す）：
 1. `src/content.config.ts` に `world` コレクション（`windows` 6 件固定・`physicalNotes`・`review`）を足す。`stance` は bull / neutral / bear / split / unknown
 2. `src/config.ts` に `WORLD_SOURCES`（窓ごとの主／代替。一覧ページでなく `{ name, host, list, kinds? }` で記事の種類を持つ）と、`NAV` に `/world/` を足す
 3. `src/pages/world/index.astro`・`[...slug].astro`（週次の骨組みを流用。6×3 の論調の分布と、現物6本の小さな折れ線は新規コンポーネント。JSON が無い週は現物の節を描かない）

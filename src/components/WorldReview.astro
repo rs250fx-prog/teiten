@@ -1,0 +1,105 @@
+---
+/**
+ * 前週の論調の答え合わせ。
+ *
+ * 判定は tools/review-world.py が週次の JSON の前週比で機械的に出したもの（frontmatter の review）。
+ * ここでは判定し直さず、当週の実績（金・ドル指数・米10年の前週比）を添えて描く。
+ * **当たった回だけを目立たせない。**外れも同じ重さで出す（日次の ScenarioReview と同じ考え）。
+ * split / unknown だった論点は判定の対象外で、ここには出ない。
+ */
+import { regionLabel, TOPICS_W, STANCE, RESULT, JUDGE, type Actual } from '../lib/world';
+
+interface Item {
+  region: string;
+  topic: 'gold' | 'dollar' | 'rates';
+  stance: 'bull' | 'neutral' | 'bear';
+  result: 'hit' | 'partial' | 'miss';
+  note: string;
+}
+interface Props {
+  review: { of: string; items: Item[] };
+  actuals: Actual[];
+}
+const { review, actuals } = Astro.props;
+const items = review.items;
+const show = !!review.of && items.length > 0;
+const count = (r: string) => items.filter((i) => i.result === r).length;
+const topicLabel = (k: string) => TOPICS_W.find((t) => t.key === k)?.label ?? k;
+const actualOf = (k: string) => actuals.find((a) => a.topic === k);
+---
+
+{show && (
+  <section class="wr" aria-label="前週の答え合わせ">
+    <div class="sec-head">
+      <h2>前週の答え合わせ</h2>
+      <span class="spacer"></span>
+      <a href={`/world/${review.of}/`}>{review.of.replace(/^(\d{4})-w(\d+)$/, '第$2週')}の号 →</a>
+    </div>
+
+    {actuals.length > 0 && (
+      <ul class="act">
+        {actuals.map((a) => (
+          <li>
+            <span class="k">{a.label}</span>
+            <span class:list={['v', a.dir]}>{a.text}</span>
+            <span class="sub">
+              前週比（{a.prevAsof.slice(5).replace('-', '/')} → {a.asof.slice(5).replace('-', '/')}）。
+              閾値 ±{JUDGE[a.topic].threshold}{JUDGE[a.topic].unit}
+            </span>
+          </li>
+        ))}
+      </ul>
+    )}
+
+    <div class="tbl">
+      <table>
+        <thead>
+          <tr><th>窓</th><th>論点</th><th>前週の論調</th><th>判定</th><th>補足</th></tr>
+        </thead>
+        <tbody>
+          {items.map((i) => (
+            <tr class={`r-${i.result}`}>
+              <th scope="row">{regionLabel(i.region)}</th>
+              <td>{topicLabel(i.topic)}</td>
+              <td><span class:list={['chip', i.stance]}>{STANCE[i.stance].mark} {STANCE[i.stance].label}</span></td>
+              <td class="res">{RESULT[i.result]}</td>
+              <td class="note">{i.note}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <p class="src">
+      想定どおり {count('hit')}・方向は合った {count('partial')}・想定と違った {count('miss')}（{items.length}論点）。
+      判定は金・ドル指数が前週比 ±0.5%、米10年が ±5bp の閾値で機械的に行い、割れ・未確認だった論点は数えない。
+      {actuals.length === 0 && ' この週の数値（週次の JSON）が無いため、実績の値は出していない。'}
+    </p>
+  </section>
+)}
+
+<style>
+  .wr { margin-top: 40px; }
+  .act { list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0 0 16px; }
+  @media (max-width: 640px) { .act { grid-template-columns: 1fr; } }
+  .act li {
+    display: flex; flex-direction: column; gap: 2px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px;
+  }
+  .act .k { font-family: var(--sa); font-size: 11.5px; letter-spacing: .08em; color: var(--muted); }
+  .act .v { font-family: var(--sa); font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .act .v.up { color: var(--up); } .act .v.down { color: var(--down); }
+  .act .sub { font-size: 11.5px; color: var(--muted); line-height: 1.6; }
+  .tbl { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  thead th { font-family: var(--sa); font-size: 11px; letter-spacing: .12em; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--line-2); }
+  tbody th { font-weight: 700; white-space: nowrap; }
+  .chip { font-family: var(--sa); font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+  .chip.bull { color: var(--up); } .chip.bear { color: var(--down); } .chip.neutral { color: var(--ink); }
+  .res { font-family: var(--sa); font-weight: 700; white-space: nowrap; }
+  tr.r-hit .res { color: var(--up); }
+  tr.r-miss .res { color: var(--down); }
+  tr.r-partial .res { color: var(--accent); }
+  .note { font-size: 13px; line-height: 1.7; color: var(--ink); }
+  .src { font-size: 12.5px; line-height: 1.8; color: var(--muted); margin-top: 10px; }
+</style>

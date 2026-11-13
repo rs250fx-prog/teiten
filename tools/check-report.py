@@ -27,6 +27,9 @@ except Exception:
 
 REPORTS = Path("src/content/reports")
 WEEKLY = Path("src/content/weekly")
+# 「世界の定点」（docs/SPEC.md §5 world）。6つの窓の論調。数値は持たない
+WORLD = Path("src/content/world")
+WORLD_SOURCES = Path("src/data/world-sources.json")
 
 # シナリオの答え合わせ（review）を必須にする開始日。
 # これより前の号は、結果が出たあとに書くことになり検証として成立しないため、
@@ -514,37 +517,245 @@ def check_weekly(p, seen_week):
         warn(p, "draft: true です。公開されません")
 
 
+WORLD_REGIONS = ["na", "eu", "ru", "cn", "in", "me"]
+WORLD_TOPICS = ["gold", "dollar", "rates"]
+WORLD_STANCES = ("bull", "neutral", "bear", "split", "unknown")
+
+
+def world_yaml(p, text):
+    """世界の定点の frontmatter は入れ子が深いので、正規表現ではなく YAML として読む"""
+    import yaml
+    m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
+    if not m:
+        err(p, "frontmatter がありません")
+        return None
+    try:
+        return yaml.safe_load(m.group(1)) or {}
+    except yaml.YAMLError as e:
+        err(p, f"frontmatter が YAML として読めません: {str(e).splitlines()[0]}")
+        return None
+
+
+def check_world(p, seen_world):
+    """「世界の定点」の検査。6窓・論調の値・媒体のホスト・答え合わせの突き合わせ・本文"""
+    import json
+    from urllib.parse import urlparse
+    text = p.read_text(encoding="utf-8")
+    fm = world_yaml(p, text)
+    if fm is None:
+        return
+    body = "---".join(text.split("---")[2:])
+
+    # ── 週番号と期間 ──────────────────────
+    year, week = fm.get("year"), fm.get("week")
+    if not (isinstance(year, int) and isinstance(week, int)):
+        err(p, "year / week が数値ではありません")
+    else:
+        expect = f"{year}-w{week:02d}"
+        if p.stem != expect:
+            err(p, f"ファイル名は {expect}.md であるべきです（現在 {p.stem}.md）")
+        if (year, week) in seen_world:
+            err(p, f"{year}年第{week}週が {seen_world[(year, week)]} と重複しています")
+        seen_world[(year, week)] = p.name
+        start = str(fm.get("start") or "")
+        try:
+            sd = datetime.date.fromisoformat(start)
+            y2, w2, _ = sd.isocalendar()
+            if (y2, w2) != (year, week):
+                err(p, f"start の週（{y2}年第{w2}週）が year/week と一致しません")
+            if sd.weekday() != 0:
+                warn(p, f"start（{start}）が{WD[sd.weekday()]}曜日です。月曜が通例")
+        except ValueError:
+            err(p, "start の日付形式が不正です")
+
+    for k2, minlen in (("title", 10), ("deck", 40)):
+        v = str(fm.get(k2) or "").strip()
+        if not v:
+            err(p, f"{k2} が空です")
+        elif len(v) < minlen:
+            warn(p, f"{k2} が{len(v)}字と短すぎます（目安{minlen}字以上）")
+    desc = str(fm.get("description") or "").strip()
+    if not desc:
+        err(p, "description が空です（未記入だと deck が流用され、一覧で重複します）")
+    elif len(desc) < 80:
+        warn(p, f"description が{len(desc)}字です。80〜100字を目安に")
+    pts = fm.get("points") or []
+    if len(pts) < 3:
+        err(p, f"points が{len(pts)}件です（3件以上）")
+    if any(not str(x).strip() for x in pts):
+        err(p, "points に空の項目があります")
+
+    # ── 6つの窓 ───────────────────────────
+    sources = json.loads(WORLD_SOURCES.read_text(encoding="utf-8"))["regions"]
+    hosts = {}
+    for r in sources:
+        hosts[r["region"]] = {m["host"] for m in r["primary"] + r["fallback"]}
+    windows = fm.get("windows") or []
+    if [w.get("region") for w in windows] != WORLD_REGIONS:
+        err(p, f"windows は na / eu / ru / cn / in / me の順に6件（現在 {[w.get('region') for w in windows]}）")
+    unknown_cells = 0
+    for w in windows:
+        reg = w.get("region")
+        media = w.get("media") or []
+        if not 1 <= len(media) <= 2:
+            err(p, f"窓 {reg} の media は1〜2本（現在 {len(media)}）")
+        for m in media:
+            host = urlparse(str(m.get("url") or "")).hostname or ""
+            if reg in hosts and host not in hosts[reg]:
+                err(p, f"窓 {reg} の媒体「{m.get('name')}」（{host}）は WORLD_SOURCES にありません。主／代替以外の媒体を使わない")
+        status = w.get("status")
+        if status not in ("確定", "未確認"):
+            err(p, f"窓 {reg} の status が不正です: {status}")
+        if status == "未確認":
+            if any(w.get(t) for t in WORLD_TOPICS):
+                err(p, f"窓 {reg} は status: 未確認 なのに論調があります（3論点とも取れないときだけ未確認にする）")
+            unknown_cells += 3
+            continue
+        for t in WORLD_TOPICS:
+            take = w.get(t)
+            if not isinstance(take, dict):
+                err(p, f"窓 {reg} に {t} がありません（取れなければ stance: unknown）")
+                continue
+            st = take.get("stance")
+            summ = str(take.get("summary") or "").strip()
+            if st not in WORLD_STANCES:
+                err(p, f"窓 {reg} の {t} の stance が不正です: {st}")
+            if st == "unknown":
+                unknown_cells += 1
+                if not summ:
+                    warn(p, f"窓 {reg} の {t} は unknown ですが理由（summary）がありません")
+            elif not summ:
+                err(p, f"窓 {reg} の {t} の summary が空です")
+            if len(summ) > 80:
+                err(p, f"窓 {reg} の {t} の summary が{len(summ)}字です（全角80字以内）")
+            if st == "split" and len(media) < 2:
+                err(p, f"窓 {reg} の {t} が split ですが media が1本です（割れは2媒体のとき）")
+        if all((w.get(t) or {}).get("stance") == "unknown" for t in WORLD_TOPICS):
+            err(p, f"窓 {reg} は3論点とも unknown です。status: 未確認 にして gold 以下を消す")
+        q = w.get("quote")
+        if q:
+            qt = str(q.get("text") or "").strip()
+            if not qt:
+                err(p, f"窓 {reg} の quote.text が空です（引用が無ければ quote ごと消す）")
+            elif len(qt.split()) > 30 and len(qt) > 60:
+                warn(p, f"窓 {reg} の引用が長すぎます（30語・60字以内）")
+            if not str(q.get("url") or "").startswith("http"):
+                err(p, f"窓 {reg} の quote.url がありません（出典 URL 必須）")
+    if windows and unknown_cells > 3:
+        warn(p, f"unknown の論点が18マス中{unknown_cells}です（日次移行の条件は4週連続で3以下）")
+
+    # ── 現物の層 ───────────────────────────
+    pn = fm.get("physicalNotes") or {}
+    wjson = Path("src/data/world") / f"{p.stem}.json"
+    if pn and not wjson.exists():
+        err(p, f"physicalNotes がありますが {wjson} がありません（値の無い窓に寸評を書かない）")
+    for k in pn:
+        if k not in WORLD_REGIONS:
+            err(p, f"physicalNotes のキー {k} は地域コードではありません")
+
+    # ── 答え合わせ ─────────────────────────
+    rv = fm.get("review") or {}
+    of = str(rv.get("of") or "")
+    items = rv.get("items") or []
+    if of:
+        prev_path = WORLD / f"{of}.md"
+        if not prev_path.exists():
+            err(p, f"review.of の {of} が見つかりません")
+        else:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("review_world", Path(__file__).with_name("review-world.py"))
+            rw = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(rw)
+            if rw.prev_slug(p.stem) != of:
+                err(p, f"review.of は前週（{rw.prev_slug(p.stem)}）であるべきです（現在 {of}）")
+            mv = rw.moves(p.stem)
+            if mv is None:
+                err(p, f"src/data/weekly/{p.stem}.json がありません。答え合わせは週次の JSON の前週比で判定します")
+            else:
+                want, _ = rw.build(p.stem)
+                key = lambda i: (i["region"], i["topic"])
+                wmap = {key(i): i for i in want["items"]}
+                hmap = {key(i): i for i in items}
+                for k, i in hmap.items():
+                    if k not in wmap:
+                        err(p, f"review に {k[0]}/{k[1]} がありますが、前週の論調では判定の対象外です（split / unknown / 未確認）")
+                    elif (i.get("stance"), i.get("result")) != (wmap[k]["stance"], wmap[k]["result"]):
+                        err(p, f"review の {k[0]}/{k[1]} が機械判定と違います：記事 {i.get('stance')}/{i.get('result')}、"
+                               f"判定 {wmap[k]['stance']}/{wmap[k]['result']}。python tools/review-world.py {p.stem} --write で書き直す")
+                for k in wmap:
+                    if k not in hmap:
+                        err(p, f"review に {k[0]}/{k[1]} がありません。python tools/review-world.py {p.stem} --write で書き直す")
+    elif items:
+        err(p, "review.of が空なのに items があります")
+    else:
+        prev = sorted(x.stem for x in WORLD.glob("*.md") if x.stem < p.stem and not x.name.startswith("_"))
+        if prev:
+            warn(p, f"review が空です。前週の号（{prev[-1]}）があるので python tools/review-world.py {p.stem} --write を実行してください")
+
+    # ── 本文 ──────────────────────────────
+    if "## 総括" not in body:
+        err(p, "必須の節がありません: 総括")
+    else:
+        sec = body.split("## 総括", 1)[1].split("情報元：", 1)[0]
+        plain = re.sub(r"<!--.*?-->", "", sec, flags=re.S).strip()
+        if len(plain) < 150:
+            err(p, f"総括が{len(plain)}字です（150字以上、600字まで）")
+        elif len(plain) > 700:
+            warn(p, f"総括が{len(plain)}字です（600字までが目安）")
+    if "情報元：" not in body:
+        err(p, "本文末に「情報元：」がありません（リンク付きリスト。アコーディオンになる）")
+    bare = re.findall(r'^\s*https?://\S+\s*$', body, re.M)
+    if bare:
+        err(p, f"素のURLが{len(bare)}件あります。[媒体名（内容・日付）](URL) の形式にしてください")
+    if "- []()" in body:
+        err(p, "情報元のリンクが未記入です")
+    if re.search(r"\d{1,3}(,\d{3})+(\.\d+)?\s*(ドル|円|bp|%)", body):
+        warn(p, "本文に数値があります。窓の値は週次の JSON から描くので、媒体の数字を転記していないか確かめてください")
+    if re.search(r"(買い|売り)(推奨|を勧め)", body):
+        err(p, "売買の推奨に読める表現があります")
+
+    if fm.get("draft") is True:
+        warn(p, "draft: true です。公開されません")
+
+
 def main():
     if not REPORTS.is_dir():
         sys.exit("src/content/reports が見つかりません。リポジトリ直下で実行してください。")
 
-    daily, weekly = [], []
+    daily, weekly, world = [], [], []
     if len(sys.argv) > 1:
         arg = sys.argv[1]
-        dp, wp = REPORTS / f"{arg}.md", WEEKLY / f"{arg}.md"
+        dp, wp, xp = REPORTS / f"{arg}.md", WEEKLY / f"{arg}.md", WORLD / f"{arg}.md"
         if dp.exists():
             daily = [dp]
-        elif wp.exists():
+        # 週次と世界の定点はスラッグが同じ（同じ週）。両方あれば両方を検査する
+        if wp.exists():
             weekly = [wp]
-        else:
-            sys.exit(f"{arg} は日次にも週次にも見つかりません")
+        if xp.exists():
+            world = [xp]
+        if not (daily or weekly or world):
+            sys.exit(f"{arg} は日次にも週次にも世界の定点にも見つかりません")
     else:
         daily = [p for p in sorted(REPORTS.glob("*.md")) if not p.name.startswith("_")]
         if WEEKLY.is_dir():
             weekly = [p for p in sorted(WEEKLY.glob("*.md")) if not p.name.startswith("_")]
+        if WORLD.is_dir():
+            world = [p for p in sorted(WORLD.glob("*.md")) if not p.name.startswith("_")]
 
-    seen_no, seen_week = {}, {}
+    seen_no, seen_week, seen_world = {}, {}, {}
     for p in daily:
         check(p, seen_no)
     for p in weekly:
         check_weekly(p, seen_week)
+    for p in world:
+        check_world(p, seen_world)
 
     for w in warns:
         print(f"  警告  {w}")
     for e in errors:
         print(f"  エラー {e}")
 
-    print(f"\n日次{len(daily)}件・週次{len(weekly)}件を検査："
+    print(f"\n日次{len(daily)}件・週次{len(weekly)}件・世界の定点{len(world)}件を検査："
           f"エラー {len(errors)} / 警告 {len(warns)}")
     sys.exit(1 if errors else 0)
 
