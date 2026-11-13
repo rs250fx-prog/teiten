@@ -22,7 +22,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     const kind = kindOf(path);
 
     if (publish) {
-      const errors = validate(text, kind);
+      const errors = validate(text, kind, path);
       if (errors.length) {
         return json({ ok: false, message: '検査に通らないため公開しません', errors }, 422);
       }

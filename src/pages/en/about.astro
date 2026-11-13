@@ -1,0 +1,113 @@
+---
+/**
+ * 英語版のサイト紹介。日本語の /about/ の訳に、英語版の範囲（World Windows のみ）と
+ * 翻訳の扱い（日本語が正本）を足している。運営者情報は日本語と同じ値を config から出す。
+ */
+import Base from '../../layouts/Base.astro';
+import { SITE_NAME, PUBLISHER, PUBLISHER_URL, OPERATOR, EDITOR } from '../../config';
+import { EN } from '../../i18n';
+---
+
+<Base
+  lang="en"
+  alternate="/about/"
+  title="About"
+  description={`Editorial policy and publisher information for ${SITE_NAME}, a Japanese market report. What the name means, what we do not write, how World Windows is observed and checked, and who publishes it.`}
+  breadcrumbs={[{ name: 'About' }]}
+>
+  <div class="wrap">
+    <header class="phead">
+      <h1>About {SITE_NAME}</h1>
+      <p class="deck">
+        {SITE_NAME} is a Japanese market report that reads the market through real yields, the dollar index, commodities and money flows, every weekday, in the same format. The English edition carries one section: World Windows.
+      </p>
+    </header>
+
+    <div class="prose">
+      <h2>The name</h2>
+      <p>
+        TEITEN (定点) means a fixed observation point. Watch the same indicators from the same place, in the same format, and change becomes visible as change. We do not look for a new angle every day. We fix where we look and record only what moves.
+      </p>
+
+      <h2>Editorial policy</h2>
+      <p>
+        We do not publish conclusions alone. Each issue keeps the data, the interpretation and the path to the conclusion, so that the reasoning can be checked later. Market views are often wrong; what matters is that the assumptions were recorded. The aim is not to advertise a hit rate but to keep a verifiable log of judgment.
+      </p>
+
+      <h2>What we do not write</h2>
+      <ul>
+        <li>Recommendations to buy or sell any specific financial product, or advice on individual investment decisions</li>
+        <li>Assertions based on data whose source we could not confirm</li>
+        <li>Conclusions strengthened by leaving out the evidence</li>
+      </ul>
+      <p>
+        The publisher is not a financial instruments business operator and is not registered as an investment adviser in Japan or in any other jurisdiction. The content of this site is information and analysis only.
+      </p>
+
+      <h2 id="world">World Windows</h2>
+      <p>
+        Six regional windows, North America, Europe, Russia, China, India and the Middle East, each with one or two fixed media outlets. Every week we read how each outlet explained gold, the US dollar and US rates, and log the reading as bullish, neutral or bearish. Summaries are in our own words; quotations are short and sourced. A window we could not read is left unconfirmed and never filled from a nearby outlet or a search result.
+      </p>
+      <p>
+        The following week, each reading is checked mechanically against the weekly change in gold, the dollar index and the 10-year Treasury yield, with thresholds of ±0.5% and ±5bp. Misses are recorded with the same weight as hits. No figures are copied from the articles; values come from the same data series as the Japanese weekly summary.
+      </p>
+      <p>
+        The daily and weekly reports are published in Japanese only. The English edition is a translation of the Japanese original. Where they differ, the Japanese edition prevails.
+      </p>
+
+      <h2 id="editor">Editor</h2>
+      <p>
+        <strong>{EDITOR.name}</strong>, representative of {PUBLISHER}, with a background in the financial industry, is responsible for the content of each issue and for the decision to publish it.
+      </p>
+
+      <h2 id="publisher">Publisher</h2>
+      <p>
+        Published by <a href={PUBLISHER_URL}>{PUBLISHER}</a>, a web marketing studio with a financial background, based in Tokyo. Business enquiries go through <a href={PUBLISHER_URL}>fam16.com</a>.
+      </p>
+
+      <dl class="info">
+        <dt>Name</dt>
+        <dd>{OPERATOR.name}</dd>
+        <dt>Representative</dt>
+        <dd>{OPERATOR.representative}</dd>
+        <dt>Address</dt>
+        <dd>{OPERATOR.address}</dd>
+        <dt>Contact</dt>
+        <dd><a href={OPERATOR.contactUrl}>Contact form</a> (fam16.com, Japanese)</dd>
+      </dl>
+
+      <p>
+        Personal data is handled as described in the <a href="/privacy/" hreflang="ja">privacy policy</a> (Japanese).
+      </p>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .phead { padding: 48px 0 34px; border-bottom: 1px solid var(--line); }
+  h1 {
+    font-family: var(--se);
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: 20px;
+  }
+  .deck { font-size: 17px; line-height: 1.8; font-weight: 400; color: var(--ink-2); max-width: 62ch; }
+  .prose { max-width: 68ch; padding: 40px 0 60px; }
+  .info {
+    display: grid;
+    grid-template-columns: 9em 1fr;
+    gap: 10px 20px;
+    margin-top: 1.2em;
+    padding: 20px 22px;
+    background: var(--surface-2);
+    border-radius: 12px;
+    font-size: 15.5px;
+  }
+  .info dt { font-family: var(--sa); font-size: 13px; color: var(--ink); padding-top: .2em; }
+  .info dd { margin: 0; }
+  @media (max-width: 520px) {
+    .info { grid-template-columns: 1fr; gap: 4px 0; padding: 18px; }
+    .info dd + dt { margin-top: 12px; }
+  }
+</style>

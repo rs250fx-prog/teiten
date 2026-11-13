@@ -521,3 +521,13 @@ python tools/check-report.py 2026-w47      # 週次と世界の定点の両方�
 - 本文は「## 総括」（150〜600字。どの窓が外れたか、地域で読みが割れた点、論調と現物が食い違った窓だけ）と末尾の「情報元：」（読んだ記事をリンク付きリストで。アコーディオンになる）
 - `draft: true` のまま push する。公開は人が `/admin` から行う
 - 売買の推奨は書かない（日次・週次と同じ）
+
+### 英語版（/en/world/）
+
+日本語の号が正本。`python tools/new-world.py --en YYYY-wNN` で雛形を作ると、論調・状態・媒体・引用・答え合わせが写され、訳す欄だけ空になる。
+
+- 訳すのは title / deck / description / points / 各 summary（英語 220 字以内）/ 本文（`## Summary` 300 字以上、末尾は `Sources:` のリンク付きリスト）だけ。**stance・status・media・quote.text・review は変えない**（`check-report.py` が日本語版と突き合わせてエラーにする）
+- 引用は原文のまま。`quote.source` の日本語（「11/12 PM Report」などの補足や訳）は英語にする
+- 数値は書かない（値は週次の JSON から描く）。売買の推奨は書かない
+- 答え合わせの英語の note は `python tools/review-world.py YYYY-wNN --write --en`
+- `draft: true` のまま、日本語版と同じコミットに add する。公開は人が `/admin` から、日本語版 → 英語版の順

@@ -4,20 +4,26 @@
 
     python tools/new-world.py            # 直近に終わった週（週次と同じ週）
     python tools/new-world.py 2026-11-10 # その日を含む週
+    python tools/new-world.py --en 2026-w46   # 英語版の雛形。日本語の号から論調・媒体・引用を写し、訳す欄だけ空にする
 
 6つの窓（na / eu / ru / cn / in / me）を src/data/world-sources.json の主媒体で並べる。
 論調（stance）と要約は人（定期実行）が書く。**数値は書かない。**
 前週の答え合わせ（review）は tools/review-world.py が書く。
 
+英語版（src/content/world-en/）は日本語の号が正本。論調・状態・媒体・引用・答え合わせは写すだけで、
+訳すのは title / deck / description / points / summary / 本文。check-report.py が日本語版と突き合わせる。
+
 既存ファイルがある場合は上書きせずに終了する。
 """
 import sys
+import re
 import json
 import datetime
 import zoneinfo
 from pathlib import Path
 
 WORLD = Path("src/content/world")
+WORLD_EN = Path("src/content/world-en")
 SOURCES = Path("src/data/world-sources.json")
 WEEKLY = Path("src/content/weekly")
 JST = zoneinfo.ZoneInfo("Asia/Tokyo")
@@ -98,9 +104,116 @@ WINDOW = '''  - region: {region}   # {label}
 '''
 
 
+EN_HEAD = '''---
+# English edition of src/content/world/{slug}.md. The Japanese issue is the original.
+# Translate only: title / deck / description / points / each summary / the body.
+# Do NOT change stance, status, media, quote text or review (check-report.py compares them with the Japanese file).
+# Summaries: up to 220 characters, in our own words. No figures (values are drawn from the weekly JSON).
+year: {year}
+week: {week}
+title: ""
+deck: ""
+start: "{start}"
+end: "{end}"
+date: "{date}"
+updated: "{updated}"
+
+points:
+{points}
+windows:
+{windows}
+physicalNotes: {{}}
+
+{review}
+tags: {tags}
+description: ""
+draft: true
+---
+
+## Summary
+
+<!-- 300 to 1,200 characters. Which windows missed, where the regions split, where readings and physical flows diverged. No trading recommendations. -->
+
+Sources:
+
+- []()
+'''
+
+
+def yaml_str(s):
+    """YAML の二重引用符の文字列にする"""
+    return '"' + str(s).replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def en_scaffold(slug):
+    """日本語の号から英語版の雛形を作る。論調・媒体・引用・答え合わせは写し、訳す欄だけ空にする"""
+    import yaml
+    src = WORLD / f"{slug}.md"
+    if not src.exists():
+        sys.exit(f"{src} がありません。英語版は日本語の号から作ります。")
+    out = WORLD_EN / f"{slug}.md"
+    if out.exists():
+        sys.exit(f"{out} はすでにあります。上書きしません。")
+    WORLD_EN.mkdir(parents=True, exist_ok=True)
+    m = re.match(r"^---\n(.*?)\n---\n", src.read_text(encoding="utf-8"), re.S)
+    fm = yaml.safe_load(m.group(1))
+
+    points = "\n".join(f'  - ""   # {p}' for p in fm.get("points") or []) or "  - \"\""
+    blocks = []
+    for w in fm["windows"]:
+        lines = [f'  - region: {w["region"]}']
+        lines.append("    media:")
+        for md in w["media"]:
+            lines.append(f'      - {{ name: {yaml_str(md["name"])}, url: {yaml_str(md["url"])} }}')
+        if w.get("status") == "未確認":
+            lines.append("    status: 未確認")
+        else:
+            for t in ("gold", "dollar", "rates"):
+                take = w.get(t) or {}
+                lines.append(f"    {t}:")
+                lines.append(f'      stance: {take.get("stance", "unknown")}')
+                lines.append(f'      summary: ""   # JA: {take.get("summary", "")}')
+            q = w.get("quote")
+            if q:
+                lines.append("    quote:")
+                lines.append(f'      text: {yaml_str(q.get("text", ""))}')
+                lines.append(f'      source: {yaml_str(q.get("source", ""))}   # translate the source label if it contains Japanese')
+                lines.append(f'      url: {yaml_str(q.get("url", ""))}')
+            lines.append("    status: 確定")
+        blocks.append("\n".join(lines) + "\n")
+
+    rv = fm.get("review") or {}
+    rlines = ["review:", f'  of: {yaml_str(rv.get("of", ""))}']
+    items = rv.get("items") or []
+    if not items:
+        rlines.append("  items: []")
+    else:
+        rlines.append("  items:")
+        for it in items:
+            rlines.append(f'    - {{ region: {it["region"]}, topic: {it["topic"]}, stance: {it["stance"]}, '
+                          f'result: {it["result"]}, note: "" }}   # JA: {it.get("note", "")}')
+        rlines.append("  # Or run: python tools/review-world.py " + slug + " --write --en  (writes English notes)")
+    tags = "[" + ", ".join(str(t) for t in fm.get("tags") or []) + "]"
+
+    out.write_text(EN_HEAD.format(
+        slug=slug, year=fm["year"], week=fm["week"], start=fm["start"], end=fm["end"],
+        date=fm.get("date", fm["end"]), updated=fm.get("updated", ""),
+        points=points, windows="\n".join(blocks), review="\n".join(rlines), tags=tags,
+    ), encoding="utf-8", newline="\n")
+    print(f"作成: {out}")
+    print("  訳す欄: title / deck / description / points / summary / 本文（## Summary と Sources:）")
+    print(f"  書き上げたら: python tools/check-report.py {slug}")
+
+
 def main():
     if not WORLD.is_dir():
         sys.exit("src/content/world が見つかりません。リポジトリ直下で実行してください。")
+    if "--en" in sys.argv:
+        slugs = [a for a in sys.argv[1:] if re.match(r"^\d{4}-w\d{2}$", a)]
+        if not slugs:
+            sys.exit("--en には YYYY-wNN を指定してください。")
+        en_scaffold(slugs[0])
+        return
     sources = json.loads(SOURCES.read_text(encoding="utf-8"))["regions"]
 
     now = datetime.datetime.now(JST)

@@ -1,32 +1,36 @@
 ---
 /**
  * 一覧用のカード。週次の WeeklyCard と同じ形で、6窓の金の論調を小さく添える。
+ * 英語版は lang='en' で /en/world/ に飛ばし、ラベルを辞書から引く。
  */
-import type { World } from '../lib/content';
+import type { World, WorldEn } from '../lib/content';
 import { monthDay } from '../lib/content';
-import { STANCE, REGIONS } from '../lib/world';
+import { STANCE, REGIONS, regionLabel, stanceLabel } from '../lib/world';
+import { EN, type Lang } from '../i18n';
 
-interface Props { entry: World }
-const { entry } = Astro.props;
+interface Props { entry: World | WorldEn; lang?: Lang }
+const { entry, lang = 'ja' } = Astro.props;
+const en = lang === 'en';
 const { week, start, end, title, deck, windows } = entry.data;
 const golds = REGIONS.map((r) => {
   const w = windows.find((x) => x.region === r.key);
-  return { label: r.label, stance: w?.gold?.stance ?? 'unknown' };
+  return { key: r.key, stance: w?.gold?.stance ?? 'unknown' };
 });
+const base = en ? '/en/world/' : '/world/';
 ---
 
-<a class="wc" href={`/world/${entry.id}/`}>
-  <div class="w">WEEK {week} — {monthDay(start)} / {monthDay(end)}</div>
+<a class="wc" href={`${base}${entry.id}/`}>
+  <div class="w">{en ? EN.world.week : 'WEEK'} {week} — {monthDay(start)} / {monthDay(end)}</div>
   <h3>{title}</h3>
   <p>{deck}</p>
-  <ul class="g" aria-label="金の論調">
+  <ul class="g" aria-label={en ? 'Gold readings' : '金の論調'}>
     {golds.map((g) => (
-      <li class={g.stance} title={`${g.label}：${STANCE[g.stance].label}`}>
-        <span class="r">{g.label}</span><span class="m">{STANCE[g.stance].mark || '·'}</span>
+      <li class={g.stance} title={`${regionLabel(g.key, lang)}: ${stanceLabel(g.stance, lang)}`}>
+        <span class="r">{regionLabel(g.key, lang)}</span><span class="m">{STANCE[g.stance].mark || '·'}</span>
       </li>
     ))}
   </ul>
-  <span class="go">読む →</span>
+  <span class="go">{en ? EN.world.read : '読む →'}</span>
 </a>
 
 <style>

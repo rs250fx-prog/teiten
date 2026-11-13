@@ -66,20 +66,22 @@ let badSources = 0;
 let sourceBlocks = 0;
 for (const page of pages) {
   const rel = path.relative(DIST, page).split(path.sep).join('/');
-  if (!/^(reports|weekly|world)\/[^/]+\/index\.html$/.test(rel)) continue;
+  if (!/^(en\/)?(reports|weekly|world)\/[^/]+\/index\.html$/.test(rel)) continue;
   const html = fs.readFileSync(page, 'utf-8');
 
-  if (/<p>\s*情報元：\s*<\/p>/.test(html)) {
+  if (/<p>\s*(情報元：|Sources:)\s*<\/p>/.test(html)) {
     badSources++;
     console.error(`NG ${rel}: 「情報元：」の直後がリストでないため、畳まれていません`);
   }
 
+  // 日本語は「情報元：A、B、C ほかN件」、英語版は「Sources: A, B, C and N more」
   for (const m of html.matchAll(
-    /<details class="sources"><summary>情報元：(.*?)<\/summary>\s*<ul>([\s\S]*?)<\/ul>\s*<\/details>/g,
+    /<details class="sources"><summary>(?:情報元：|Sources: )(.*?)<\/summary>\s*<ul>([\s\S]*?)<\/ul>\s*<\/details>/g,
   )) {
     sourceBlocks++;
-    const [, names, rest] = m[1].match(/^(.*?)(?: ほか(\d+)件)?$/);
-    const shown = names.split('、').length + Number(rest ?? 0);
+    const names = m[1].replace(/ ほか\d+件$| and \d+ more$/, '');
+    const restN = m[1].match(/ ほか(\d+)件$/)?.[1] ?? m[1].match(/ and (\d+) more$/)?.[1] ?? 0;
+    const shown = names.split(/、|, /).length + Number(restN);
     const rows = (m[2].match(/<li>/g) ?? []).length;
     if (shown !== rows) {
       badSources++;

@@ -1,23 +1,46 @@
 ---
 import { DISCLAIMER, PUBLISHER, PUBLISHER_URL, IS_PUBLIC } from '../config';
+import { EN, type Lang } from '../i18n';
+
+interface Props { lang?: Lang }
+const { lang = 'ja' } = Astro.props;
 const year = new Date().getFullYear();
 ---
 
 <footer>
   <div class="wrap">
-    <div class="disc">
-      <b>免責事項</b>
-      {DISCLAIMER}
-    </div>
-    <div class="fbot">
-      <a href="/about/">このメディアについて</a>
-      <a href="/sources/">指標の取得元</a>
-      <a href="/about/#publisher">運営者情報</a>
-      <a href="/privacy/">プライバシーポリシー</a>
-      {IS_PUBLIC && <a href="/rss.xml">RSS</a>}
-      <a href={PUBLISHER_URL}>fam16.com</a>
-      <span>© {year} {PUBLISHER}</span>
-    </div>
+    {lang === 'en' ? (
+      <>
+        <div class="disc">
+          <b>{EN.disclaimerHead}</b>
+          {EN.disclaimer}
+        </div>
+        <div class="fbot">
+          <a href="/en/about/">{EN.footer.about}</a>
+          <a href="/en/about/#publisher">{EN.footer.publisher}</a>
+          <a href="/privacy/" hreflang="ja">{EN.footer.privacy}</a>
+          <a href="/" hreflang="ja">{EN.footer.japanese}</a>
+          <a href={PUBLISHER_URL}>fam16.com</a>
+          <span>© {year} {PUBLISHER}</span>
+        </div>
+      </>
+    ) : (
+      <>
+        <div class="disc">
+          <b>免責事項</b>
+          {DISCLAIMER}
+        </div>
+        <div class="fbot">
+          <a href="/about/">このメディアについて</a>
+          <a href="/sources/">指標の取得元</a>
+          <a href="/about/#publisher">運営者情報</a>
+          <a href="/privacy/">プライバシーポリシー</a>
+          {IS_PUBLIC && <a href="/rss.xml">RSS</a>}
+          <a href={PUBLISHER_URL}>fam16.com</a>
+          <span>© {year} {PUBLISHER}</span>
+        </div>
+      </>
+    )}
   </div>
 </footer>
 

@@ -6,8 +6,10 @@
  * 取れなかった窓（status: 未確認）は点線の枠で、理由を1行だけ出す。
  * 1論点だけ取れなかった窓は、その論点を「未確認」と出す。
  * 2媒体で向きが割れた論点は「割れ」と出し、中立に丸めない。
+ * 英語版（lang === 'en'）は見出しとラベルだけ辞書を引く。要約は world-en の本文側で訳す。
  */
-import { REGIONS, TOPICS_W, STANCE, type Stance } from '../lib/world';
+import { TOPICS_W, STANCE, regionLabel, topicLabel, stanceLabel, statusLabel, type Stance } from '../lib/world';
+import { EN, type Lang } from '../i18n';
 
 interface Take { stance: Stance; summary: string }
 interface Window {
@@ -22,22 +24,23 @@ interface Window {
 interface Props {
   windows: Window[];
   physicalNotes?: Record<string, string>;
+  lang?: Lang;
 }
-const { windows, physicalNotes = {} } = Astro.props;
+const { windows, physicalNotes = {}, lang = 'ja' } = Astro.props;
+const en = lang === 'en';
 
-const label = (k: string) => REGIONS.find((r) => r.key === k)?.label ?? k;
 const takeOf = (w: Window, t: (typeof TOPICS_W)[number]['key']): Take =>
   w[t] ?? { stance: 'unknown', summary: '' };
 ---
 
-<section class="ww" aria-label="6つの窓">
-  <div class="sec-head"><h2>6つの窓</h2></div>
+<section class="ww" aria-label={en ? EN.world.windows : '6つの窓'}>
+  <div class="sec-head"><h2>{en ? EN.world.windows : '6つの窓'}</h2></div>
   <div class="grid">
     {windows.map((w) => (
       <article class:list={['win', { unconfirmed: w.status === '未確認' }]}>
         <header class="win-h">
           <h3>
-            {label(w.region)}
+            {regionLabel(w.region, lang)}
             <span class="code">{w.region}</span>
           </h3>
           <p class="media">
@@ -51,7 +54,7 @@ const takeOf = (w: Window, t: (typeof TOPICS_W)[number]['key']): Take =>
         </header>
 
         {w.status === '未確認' ? (
-          <p class="none">今週は3つの論点とも該当する記事が無く、未確認のまま出す。近い媒体や検索結果で埋めない。</p>
+          <p class="none">{en ? EN.world.unconfirmedWindow : '今週は3つの論点とも該当する記事が無く、未確認のまま出す。近い媒体や検索結果で埋めない。'}</p>
         ) : (
           <div class="takes">
             {TOPICS_W.map((t) => {
@@ -60,10 +63,10 @@ const takeOf = (w: Window, t: (typeof TOPICS_W)[number]['key']): Take =>
               return (
                 <div class="take">
                   <div class="take-h">
-                    <span class="lbl">{t.label}</span>
+                    <span class="lbl">{topicLabel(t.key, lang)}</span>
                     <span class:list={['chip', k.stance]}>
                       {s.mark && <span class="mark" aria-hidden="true">{s.mark}</span>}
-                      {s.label}
+                      {stanceLabel(k.stance, lang)}
                     </span>
                   </div>
                   {k.summary && <p class:list={['sum', { muted: k.stance === 'unknown' }]}>{k.summary}</p>}
@@ -81,11 +84,11 @@ const takeOf = (w: Window, t: (typeof TOPICS_W)[number]['key']): Take =>
         )}
 
         {physicalNotes[w.region] && (
-          <p class="phys"><span class="lbl">現物</span>{physicalNotes[w.region]}</p>
+          <p class="phys"><span class="lbl">{en ? EN.world.physical : '現物'}</span>{physicalNotes[w.region]}</p>
         )}
 
         <footer class="win-f">
-          <span class:list={['status', w.status === '確定' ? 'ok' : 'ng']}>{w.status}</span>
+          <span class:list={['status', w.status === '確定' ? 'ok' : 'ng']}>{statusLabel(w.status, lang)}</span>
         </footer>
       </article>
     ))}

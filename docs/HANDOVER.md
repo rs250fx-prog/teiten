@@ -18,8 +18,8 @@
 | 最新コミット | 「世界の定点」の実装と初号（2026-11-13。内容は `docs/SPEC.md` の更新履歴 2026-11-13）。**push は未実施**（push すると NAV に「世界の定点」が出る。初号は下書きなので一覧は空） |
 | 本番 | https://teiten.trade （`main` push で自動デプロイ。反映まで1〜2分） |
 | ビルド | 通る。`check-report.py` エラー0 |
-| 記事 | 日次39本／週次7本／世界の定点1本（下書き）（2026-11-13 時点のファイル数） |
-| 公開状態 | `IS_PUBLIC = true`。世界の定点の初号（`2026-w46`）は下書き。`/admin` から公開する |
+| 記事 | 日次39本／週次7本／世界の定点1本（下書き。英語版も1本・下書き）（2026-11-13 時点のファイル数） |
+| 公開状態 | `IS_PUBLIC = true`。世界の定点の初号（`2026-w46`）は日本語・英語とも下書き。`/admin` から公開する（**日本語を先に**。英語だけ公開すると検査が止める） |
 
 ### 作業前に必ず読むもの
 
@@ -252,8 +252,13 @@ insight.factset.com
 `tools/new-world.py`・`tools/review-world.py`・`check-report.py` の `check_world`・`/admin` の world 対応。初号 `src/content/world/2026-w46.md` を論調の層だけで手作りし、
 検査エラー 0・ビルド成功を確認した。**下書きのままなので、`/admin` から公開する。**
 
+**英語版（`/en/`）も 2026-11-13 に実装した**（SPEC §5「world」の「英語版」、更新履歴 2026-11-13）。範囲は世界の定点とサイト紹介だけ。
+記事は `src/content/world-en/<slug>.md`（`python tools/new-world.py --en <slug>` で日本語の号から雛形）。初号の英語版も下書きで作った。
+免責の英訳（`src/i18n.ts` の `EN.disclaimer`）は法的な確認が未了。公開前に一度は専門家に見せる。
+
 残り：
-- **push**（未実施。push すると NAV に「世界の定点」が出る）
+- **英語版の push**（日本語版の実装は `1e74fcc` で push 済み。英語版はコミットのみ）。push すると `/en/` が出る（初号は下書きなので一覧は空）
+- `/admin` から日本語版 → 英語版の順に公開する
 - **クラウドの実行環境から `WORLD_SOURCES` の主 6 本を fetch できるか確かめる**（手元では 6 本とも読めた。クラウドでは 403 等で変わりうる）。
   確かめてから `docs/ROUTINES.md` 週次の 7-D を登録済みのルーティン（`trig_016QTPqnayVK9vrrR6HSGWNu`）の文面に反映する。第47週（11/21 土）から定期実行
 - 現物の層（段階 2）：`docs/SOURCES.md` に系列の節を足してから `tools/fetch-world.py --write`（`src/data/world/<slug>.json`）を作る。先に GLD（週次の `flows` と同じ出所）と

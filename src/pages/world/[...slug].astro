@@ -8,7 +8,7 @@ import WorldWindows from '../../components/WorldWindows.astro';
 import WorldGrid from '../../components/WorldGrid.astro';
 import WorldReview from '../../components/WorldReview.astro';
 import {
-  allWorld, listReports, listWeekly, monthDay, longDate, tagSlug, isoJst,
+  allWorld, allWorldEn, listReports, listWeekly, monthDay, longDate, tagSlug, isoJst,
 } from '../../lib/content';
 import { actuals } from '../../lib/world';
 import { SITE_URL, OPERATOR, PUBLISHER_URL, EDITOR } from '../../config';
@@ -38,6 +38,10 @@ const latest = reports[0];
 const railItems = sameWeek
   ? [{ href: `/weekly/${sameWeek.id}/`, meta: `WEEK ${sameWeek.data.week}`, title: sameWeek.data.title }]
   : [];
+
+// 英語版（src/content/world-en）があれば hreflang と言語の切り替えを出す
+const hasEn = (await allWorldEn()).some((w) => w.id === entry.id);
+const alternate = hasEn ? `/en/world/${entry.id}/` : undefined;
 
 const pageUrl = new URL(`/world/${entry.id}/`, SITE_URL).href;
 const modifiedIso = isoJst(d.date ?? d.end, d.updated);
@@ -83,6 +87,7 @@ const breadcrumbs = [{ name: '世界の定点', path: '/world/' }, { name: d.tit
   quotes={latest?.data.snapshot ?? []}
   mastDate={latest?.data.date}
   mastNo={latest?.data.no}
+  alternate={alternate}
 >
   <div class="wrap">
     {/* 週次と同じ骨組み。右列には答え合わせに使う3系列の前週比と、同じ週の週次まとめ */}

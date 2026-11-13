@@ -1,0 +1,66 @@
+---
+/**
+ * 英語版のトップ。英語版は「世界の定点」とサイト紹介だけなので、
+ * 最新の World Windows と About への導線を置く短いページにする。
+ * 日次・週次は日本語のみ（その旨を書く）。
+ */
+import Base from '../../layouts/Base.astro';
+import WorldCard from '../../components/WorldCard.astro';
+import { listWorldEn } from '../../lib/content';
+import { EN } from '../../i18n';
+
+const world = await listWorldEn();
+const latest = world.slice(0, 3);
+---
+
+<Base lang="en" alternate="/" description={EN.siteDescription} isHome>
+  <div class="wrap">
+    <header class="phead">
+      <h1>{EN.en_index.title}</h1>
+      <p>{EN.en_index.lead}</p>
+      <p class="ja">{EN.en_index.jaNote} <a href="/" hreflang="ja">{EN.footer.japanese} →</a></p>
+    </header>
+
+    <section class="sec" aria-label={EN.en_index.latest}>
+      <div class="sec-head">
+        <h2>{EN.en_index.latest}</h2>
+        <span class="spacer"></span>
+        <a href="/en/world/">{EN.en_index.all}</a>
+      </div>
+      {latest.length > 0 ? (
+        <div class="wk">
+          {latest.map((entry) => <WorldCard entry={entry} lang="en" />)}
+        </div>
+      ) : (
+        <p class="empty">{EN.world.empty}</p>
+      )}
+    </section>
+
+    <p class="about"><a href="/en/about/">{EN.en_index.aboutLink}</a></p>
+  </div>
+</Base>
+
+<style>
+  .phead { padding: 48px 0 34px; border-bottom: 1px solid var(--line); }
+  h1 {
+    font-family: var(--se);
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: 18px;
+  }
+  .phead p { font-size: 15.5px; line-height: 1.9; color: var(--ink-2); max-width: 62ch; }
+  .phead .ja { font-size: 13.5px; color: var(--muted); margin-top: 12px; }
+  .phead .ja a { color: var(--accent); }
+  .sec { padding: 40px 0 10px; }
+  .wk {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 20px 0 40px;
+  }
+  @media (max-width: 860px) { .wk { grid-template-columns: 1fr; } }
+  .empty { padding: 60px 0; text-align: center; color: var(--muted); }
+  .about { padding: 10px 0 60px; font-family: var(--sa); font-size: 14px; }
+  .about a { color: var(--accent); }
+</style>

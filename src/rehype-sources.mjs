@@ -16,7 +16,11 @@
  * - 「情報元：」だけの段落の直後にリストがなければ変換しない（次の節のリストを巻き込まない）
  */
 
-const LABEL = '情報元：';
+// 日本語は「情報元：」、英語版（src/content/world-en）は「Sources:」。見出しの件数の書き方も言語で変える
+const LABELS = {
+  '情報元：': { more: (n) => ` ほか${n}件`, sep: '、' },
+  'Sources:': { more: (n) => ` and ${n} more`, sep: ', ' },
+};
 const MAX_NAMES = 3;
 
 const isWhitespace = (node) => node?.type === 'text' && !node.value.trim();
@@ -30,10 +34,11 @@ function textOf(node) {
 /** 「媒体名（記事名、日付）」から媒体名だけを取り出す */
 const mediaName = (li) => textOf(li).trim().split(/[（(]/)[0].trim();
 
-function summaryText(items) {
+function summaryText(label, items) {
+  const { more, sep } = LABELS[label];
   const names = [...new Set(items.map(mediaName).filter(Boolean))].slice(0, MAX_NAMES);
   const rest = items.length - names.length;
-  return `${LABEL}${names.join('、')}${rest > 0 ? ` ほか${rest}件` : ''}`;
+  return `${label}${label.endsWith(':') ? ' ' : ''}${names.join(sep)}${rest > 0 ? more(rest) : ''}`;
 }
 
 const element = (tagName, properties, children) => ({
@@ -49,8 +54,9 @@ function wrapSources(parent) {
 
   for (let i = 0; i < kids.length; i++) {
     const node = kids[i];
-    const isLabel =
-      node.type === 'element' && node.tagName === 'p' && textOf(node).trim() === LABEL;
+    const label =
+      node.type === 'element' && node.tagName === 'p' ? textOf(node).trim() : '';
+    const isLabel = Object.hasOwn(LABELS, label);
 
     let next = i + 1;
     while (isWhitespace(kids[next])) next++;
@@ -60,7 +66,7 @@ function wrapSources(parent) {
       const items = list.children.filter((c) => c.type === 'element' && c.tagName === 'li');
       out.push(
         element('details', { className: ['sources'] }, [
-          element('summary', {}, [{ type: 'text', value: summaryText(items) }]),
+          element('summary', {}, [{ type: 'text', value: summaryText(label, items) }]),
           list,
         ]),
       );

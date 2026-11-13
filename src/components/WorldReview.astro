@@ -7,7 +7,8 @@
  * **当たった回だけを目立たせない。**外れも同じ重さで出す（日次の ScenarioReview と同じ考え）。
  * split / unknown だった論点は判定の対象外で、ここには出ない。
  */
-import { regionLabel, TOPICS_W, STANCE, RESULT, JUDGE, type Actual } from '../lib/world';
+import { regionLabel, topicLabel, stanceLabel, resultLabel, STANCE, JUDGE, type Actual } from '../lib/world';
+import { EN, type Lang } from '../i18n';
 
 interface Item {
   region: string;
@@ -19,21 +20,25 @@ interface Item {
 interface Props {
   review: { of: string; items: Item[] };
   actuals: Actual[];
+  lang?: Lang;
 }
-const { review, actuals } = Astro.props;
+const { review, actuals, lang = 'ja' } = Astro.props;
+const en = lang === 'en';
 const items = review.items;
 const show = !!review.of && items.length > 0;
 const count = (r: string) => items.filter((i) => i.result === r).length;
-const topicLabel = (k: string) => TOPICS_W.find((t) => t.key === k)?.label ?? k;
-const actualOf = (k: string) => actuals.find((a) => a.topic === k);
+const md = (iso: string) => iso.slice(5).replace('-', '/');
+const weekNo = review.of.replace(/^(\d{4})-w(\d+)$/, '$2');
+const base = en ? '/en/world/' : '/world/';
+const cols = en ? EN.world.reviewCols : ['窓', '論点', '前週の論調', '判定', '補足'];
 ---
 
 {show && (
-  <section class="wr" aria-label="前週の答え合わせ">
+  <section class="wr" aria-label={en ? EN.world.review : '前週の答え合わせ'}>
     <div class="sec-head">
-      <h2>前週の答え合わせ</h2>
+      <h2>{en ? EN.world.review : '前週の答え合わせ'}</h2>
       <span class="spacer"></span>
-      <a href={`/world/${review.of}/`}>{review.of.replace(/^(\d{4})-w(\d+)$/, '第$2週')}の号 →</a>
+      <a href={`${base}${review.of}/`}>{en ? EN.world.reviewIssue(weekNo) : `第${weekNo}週の号 →`}</a>
     </div>
 
     {actuals.length > 0 && (
@@ -43,8 +48,9 @@ const actualOf = (k: string) => actuals.find((a) => a.topic === k);
             <span class="k">{a.label}</span>
             <span class:list={['v', a.dir]}>{a.text}</span>
             <span class="sub">
-              前週比（{a.prevAsof.slice(5).replace('-', '/')} → {a.asof.slice(5).replace('-', '/')}）。
-              閾値 ±{JUDGE[a.topic].threshold}{JUDGE[a.topic].unit}
+              {en
+                ? `${EN.world.weekOnWeek} (${md(a.prevAsof)} → ${md(a.asof)}), ${EN.world.threshold} ±${JUDGE[a.topic].threshold}${JUDGE[a.topic].unit}`
+                : `前週比（${md(a.prevAsof)} → ${md(a.asof)}）。閾値 ±${JUDGE[a.topic].threshold}${JUDGE[a.topic].unit}`}
             </span>
           </li>
         ))}
@@ -54,15 +60,15 @@ const actualOf = (k: string) => actuals.find((a) => a.topic === k);
     <div class="tbl">
       <table>
         <thead>
-          <tr><th>窓</th><th>論点</th><th>前週の論調</th><th>判定</th><th>補足</th></tr>
+          <tr>{cols.map((c) => <th>{c}</th>)}</tr>
         </thead>
         <tbody>
           {items.map((i) => (
             <tr class={`r-${i.result}`}>
-              <th scope="row">{regionLabel(i.region)}</th>
-              <td>{topicLabel(i.topic)}</td>
-              <td><span class:list={['chip', i.stance]}>{STANCE[i.stance].mark} {STANCE[i.stance].label}</span></td>
-              <td class="res">{RESULT[i.result]}</td>
+              <th scope="row">{regionLabel(i.region, lang)}</th>
+              <td>{topicLabel(i.topic, lang)}</td>
+              <td><span class:list={['chip', i.stance]}>{STANCE[i.stance].mark} {stanceLabel(i.stance, lang)}</span></td>
+              <td class="res">{resultLabel(i.result, lang)}</td>
               <td class="note">{i.note}</td>
             </tr>
           ))}
@@ -70,9 +76,9 @@ const actualOf = (k: string) => actuals.find((a) => a.topic === k);
       </table>
     </div>
     <p class="src">
-      想定どおり {count('hit')}・方向は合った {count('partial')}・想定と違った {count('miss')}（{items.length}論点）。
-      判定は金・ドル指数が前週比 ±0.5%、米10年が ±5bp の閾値で機械的に行い、割れ・未確認だった論点は数えない。
-      {actuals.length === 0 && ' この週の数値（週次の JSON）が無いため、実績の値は出していない。'}
+      {en
+        ? EN.world.reviewNote(count('hit'), count('partial'), count('miss'), items.length) + (actuals.length === 0 ? EN.world.reviewNoData : '')
+        : `想定どおり ${count('hit')}・方向は合った ${count('partial')}・想定と違った ${count('miss')}（${items.length}論点）。判定は金・ドル指数が前週比 ±0.5%、米10年が ±5bp の閾値で機械的に行い、割れ・未確認だった論点は数えない。${actuals.length === 0 ? ' この週の数値（週次の JSON）が無いため、実績の値は出していない。' : ''}`}
     </p>
   </section>
 )}

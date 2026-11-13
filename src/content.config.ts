@@ -340,7 +340,8 @@ const weekly = defineCollection({
  */
 const take = z.object({
   stance: z.enum(['bull', 'neutral', 'bear', 'split', 'unknown']),
-  summary: z.string().max(90).default(''),
+  /** 字数の検査は check-report.py（日本語80字・英語220字）。ここは上限の網だけ */
+  summary: z.string().max(240).default(''),
 });
 
 const REGION_ORDER = ['na', 'eu', 'ru', 'cn', 'in', 'me'] as const;
@@ -353,9 +354,7 @@ const REGION_ORDER = ['na', 'eu', 'ru', 'cn', 'in', 'me'] as const;
  * 「現物の層」（窓ごとに固定した系列1本。src/data/world/<slug>.json から描く）の2段で毎週観測する。
  * **frontmatter に数値は書かない。**論調と要約と出典だけを持つ。
  */
-const world = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/content/world' }),
-  schema: z.object({
+const worldSchema = z.object({
     week: z.number(),
     year: z.number(),
     title: z.string(),
@@ -426,7 +425,21 @@ const world = defineCollection({
     draft: z.boolean().default(false),
     unlisted: z.boolean().default(false),
     access: z.enum(['public', 'members']).default('public'),
-  }),
 });
 
-export const collections = { reports, weekly, world };
+const world = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/world' }),
+  schema: worldSchema,
+});
+
+/**
+ * 世界の定点の英語版（/en/world/）。日本語と同じスラッグ・同じ形で、要約と本文だけを訳す。
+ * 論調（stance）と状態（status）は日本語と同じでなければならない（check-report.py が突き合わせる）。
+ * 英語版だけの号は作らない。
+ */
+const worldEn = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/world-en' }),
+  schema: worldSchema,
+});
+
+export const collections = { reports, weekly, world, 'world-en': worldEn };

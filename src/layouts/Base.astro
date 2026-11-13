@@ -6,6 +6,7 @@ import Ticker from '../components/Ticker.astro';
 import Masthead from '../components/Masthead.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import Analytics from '../components/Analytics.astro';
+import { EN, type Lang } from '../i18n';
 
 interface Quote {
   label: string;
@@ -35,6 +36,13 @@ interface Props {
   mastNo?: number;
   /** TOPのみ true。サイト名を h1 にする */
   isHome?: boolean;
+  /** 言語。英語版（/en/）のページだけ 'en'。既定は日本語 */
+  lang?: Lang;
+  /**
+   * 対になる別言語のページのパス（hreflang と言語の切り替えリンクに使う）。
+   * 日本語のページなら英語版のパス、英語のページなら日本語版のパス。無ければ出さない
+   */
+  alternate?: string;
 }
 
 const {
@@ -52,11 +60,13 @@ const {
   mastDate,
   mastNo,
   isHome = false,
+  lang = 'ja',
+  alternate,
 } = Astro.props;
 ---
 
 <!doctype html>
-<html lang="ja">
+<html lang={lang}>
   <head>
     <Seo
       title={title}
@@ -69,6 +79,8 @@ const {
       noindex={noindex}
       schema={schema}
       breadcrumbs={breadcrumbs}
+      lang={lang}
+      alternate={alternate}
     />
 
     <!-- 欧文フォントは自己ホスト。Google Fonts の CSS は
@@ -99,17 +111,17 @@ const {
   </head>
 
   <body>
-    <a class="skip" href="#main">本文へスキップ</a>
+    <a class="skip" href="#main">{lang === 'en' ? EN.skip : '本文へスキップ'}</a>
 
     <Ticker quotes={quotes} />
-    <Masthead date={mastDate} no={mastNo} asHeading={isHome} />
-    <Nav />
+    <Masthead date={mastDate} no={mastNo} asHeading={isHome} lang={lang} />
+    <Nav lang={lang} alternate={alternate} />
 
     <main id="main">
       <slot />
     </main>
 
-    <SiteFooter />
+    <SiteFooter lang={lang} />
 
     <style>
       .skip {

@@ -53,6 +53,31 @@ export async function allWorld(): Promise<World[]> {
   );
 }
 
+/** 世界の定点の英語版（src/content/world-en）。日本語と同じスラッグ */
+export type WorldEn = CollectionEntry<'world-en'>;
+
+export async function listWorldEn(): Promise<WorldEn[]> {
+  const all = await getCollection('world-en', ({ data }) => isVisible(data));
+  return all.sort(
+    (a, b) => b.data.year - a.data.year || b.data.week - a.data.week,
+  );
+}
+
+export async function allWorldEn(): Promise<WorldEn[]> {
+  const all = await getCollection('world-en', ({ data }) => !data.draft);
+  return all.sort(
+    (a, b) => b.data.year - a.data.year || b.data.week - a.data.week,
+  );
+}
+
+/** 'YYYY-MM-DD' → 'November 13, 2026'（英語版） */
+export function longDateEn(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-US', {
+    year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC',
+  });
+}
+
 /** 'YYYY-MM-DD' → '2026.09.22' */
 export const dotted = (iso: string) => iso.replaceAll('-', '.');
 

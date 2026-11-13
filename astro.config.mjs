@@ -60,11 +60,20 @@ const excluded = [
   ...unlistedPaths('./src/content/reports', '/reports'),
   ...unlistedPaths('./src/content/weekly', '/weekly'),
   ...unlistedPaths('./src/content/world', '/world'),
+  ...unlistedPaths('./src/content/world-en', '/en/world'),
   ...emptyTopicPaths(),
 ];
 
 export default defineConfig({
   site: SITE_URL,
+  // 日本語が正で接頭辞なし、英語は /en/ の下（src/pages/en/）。英語版は「世界の定点」とサイト紹介だけ。
+  // hreflang は各ページの Seo.astro が対になるページを指して出す（サイトマップの i18n は使わない。
+  // 全ページに英語版があるわけではないため）
+  i18n: {
+    defaultLocale: 'ja',
+    locales: ['ja', 'en'],
+    routing: { prefixDefaultLocale: false },
+  },
   // 共通CSS（約17KB）を別ファイルにすると、低速回線ではその1往復ぶん描画が遅れる
   // （PageSpeed の「レンダリングをブロックするリソース」）。HTMLに埋め込む
   build: { inlineStylesheets: 'always' },

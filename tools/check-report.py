@@ -520,6 +520,101 @@ def check_weekly(p, seen_week):
 WORLD_REGIONS = ["na", "eu", "ru", "cn", "in", "me"]
 WORLD_TOPICS = ["gold", "dollar", "rates"]
 WORLD_STANCES = ("bull", "neutral", "bear", "split", "unknown")
+# 英語版（/en/world/）。日本語と同じスラッグで、論調・状態・媒体・答え合わせは日本語と同じでなければならない
+WORLD_EN = Path("src/content/world-en")
+
+
+def check_world_en(p):
+    """世界の定点の英語版。日本語の原本と突き合わせ、訳してよい欄（要約・本文）だけが違うことを確かめる"""
+    text = p.read_text(encoding="utf-8")
+    fm = world_yaml(p, text)
+    if fm is None:
+        return
+    body = "---".join(text.split("---")[2:])
+    ja_path = WORLD / p.name
+    if not ja_path.exists():
+        err(p, f"日本語の原本 {ja_path} がありません。英語版だけの号は作らない")
+        return
+    ja = world_yaml(ja_path, ja_path.read_text(encoding="utf-8")) or {}
+
+    for k in ("year", "week", "start", "end"):
+        if fm.get(k) != ja.get(k):
+            err(p, f"{k} が日本語版と違います（{fm.get(k)} / {ja.get(k)}）")
+    for k2, minlen in (("title", 10), ("deck", 40), ("description", 80)):
+        v = str(fm.get(k2) or "").strip()
+        if not v:
+            err(p, f"{k2} が空です")
+        elif len(v) < minlen:
+            warn(p, f"{k2} が{len(v)}字と短すぎます（目安{minlen}字以上）")
+        if v and v == str(ja.get(k2) or "").strip():
+            err(p, f"{k2} が日本語のままです")
+    pts = fm.get("points") or []
+    if len(pts) != len(ja.get("points") or []):
+        err(p, f"points の件数が日本語版と違います（{len(pts)} / {len(ja.get('points') or [])}）")
+    if any(not str(x).strip() for x in pts):
+        err(p, "points に空の項目があります")
+
+    jw = {w.get("region"): w for w in ja.get("windows") or []}
+    windows = fm.get("windows") or []
+    if [w.get("region") for w in windows] != WORLD_REGIONS:
+        err(p, "windows は na / eu / ru / cn / in / me の順に6件")
+    for w in windows:
+        reg = w.get("region")
+        o = jw.get(reg) or {}
+        if w.get("status") != o.get("status"):
+            err(p, f"窓 {reg} の status が日本語版と違います（{w.get('status')} / {o.get('status')}）")
+        if [m.get("url") for m in w.get("media") or []] != [m.get("url") for m in o.get("media") or []]:
+            err(p, f"窓 {reg} の media の URL が日本語版と違います（媒体は訳さない）")
+        if w.get("status") == "未確認":
+            if any(w.get(t) for t in WORLD_TOPICS):
+                err(p, f"窓 {reg} は status: 未確認 なのに論調があります")
+            continue
+        for t in WORLD_TOPICS:
+            take, ot = w.get(t) or {}, o.get(t) or {}
+            if take.get("stance") != ot.get("stance"):
+                err(p, f"窓 {reg} の {t} の stance が日本語版と違います（{take.get('stance')} / {ot.get('stance')}）。論調は訳で変えない")
+            summ = str(take.get("summary") or "").strip()
+            if take.get("stance") != "unknown" and not summ:
+                err(p, f"窓 {reg} の {t} の summary が空です")
+            if summ and summ == str(ot.get("summary") or "").strip():
+                err(p, f"窓 {reg} の {t} の summary が日本語のままです")
+            if len(summ) > 220:
+                err(p, f"窓 {reg} の {t} の summary が{len(summ)}字です（英語は220字以内）")
+        q, oq = w.get("quote") or {}, o.get("quote") or {}
+        if (q.get("url") or "") != (oq.get("url") or ""):
+            err(p, f"窓 {reg} の quote.url が日本語版と違います（引用は原文のまま、出典も同じ）")
+        if q and str(q.get("text") or "") != str(oq.get("text") or ""):
+            err(p, f"窓 {reg} の quote.text が日本語版と違います（引用は原文のまま）")
+
+    rv, orv = fm.get("review") or {}, ja.get("review") or {}
+    if str(rv.get("of") or "") != str(orv.get("of") or ""):
+        err(p, "review.of が日本語版と違います")
+    key = lambda i: (i.get("region"), i.get("topic"), i.get("stance"), i.get("result"))
+    if sorted(map(key, rv.get("items") or [])) != sorted(map(key, orv.get("items") or [])):
+        err(p, "review.items が日本語版と違います（判定は訳で変えない。note だけ訳す）")
+
+    if "## Summary" not in body:
+        err(p, "必須の節がありません: Summary")
+    else:
+        sec = body.split("## Summary", 1)[1].split("Sources:", 1)[0]
+        plain = re.sub(r"<!--.*?-->", "", sec, flags=re.S).strip()
+        if len(plain) < 300:
+            err(p, f"Summary が{len(plain)}字です（英語は300字以上）")
+    if "Sources:" not in body:
+        err(p, "本文末に「Sources:」がありません（リンク付きリスト。アコーディオンになる）")
+    if "情報元：" in body or "## 総括" in body:
+        err(p, "本文に日本語の見出しが残っています")
+    bare = re.findall(r'^\s*https?://\S+\s*$', body, re.M)
+    if bare:
+        err(p, f"素のURLが{len(bare)}件あります")
+    if "- []()" in body:
+        err(p, "Sources のリンクが未記入です")
+    if re.search(r"\b(buy|sell) (recommend|now)", body, re.I):
+        err(p, "売買の推奨に読める表現があります")
+    if fm.get("draft") is True:
+        warn(p, "draft: true です。公開されません")
+    if fm.get("draft") is False and ja.get("draft") is True:
+        err(p, "日本語版が下書きなのに英語版が公開になっています")
 
 
 def world_yaml(p, text):
@@ -722,17 +817,19 @@ def main():
     if not REPORTS.is_dir():
         sys.exit("src/content/reports が見つかりません。リポジトリ直下で実行してください。")
 
-    daily, weekly, world = [], [], []
+    daily, weekly, world, world_en = [], [], [], []
     if len(sys.argv) > 1:
         arg = sys.argv[1]
-        dp, wp, xp = REPORTS / f"{arg}.md", WEEKLY / f"{arg}.md", WORLD / f"{arg}.md"
+        dp, wp, xp, ep = REPORTS / f"{arg}.md", WEEKLY / f"{arg}.md", WORLD / f"{arg}.md", WORLD_EN / f"{arg}.md"
         if dp.exists():
             daily = [dp]
-        # 週次と世界の定点はスラッグが同じ（同じ週）。両方あれば両方を検査する
+        # 週次と世界の定点（と英語版）はスラッグが同じ（同じ週）。あるものをすべて検査する
         if wp.exists():
             weekly = [wp]
         if xp.exists():
             world = [xp]
+        if ep.exists():
+            world_en = [ep]
         if not (daily or weekly or world):
             sys.exit(f"{arg} は日次にも週次にも世界の定点にも見つかりません")
     else:
@@ -741,6 +838,8 @@ def main():
             weekly = [p for p in sorted(WEEKLY.glob("*.md")) if not p.name.startswith("_")]
         if WORLD.is_dir():
             world = [p for p in sorted(WORLD.glob("*.md")) if not p.name.startswith("_")]
+        if WORLD_EN.is_dir():
+            world_en = [p for p in sorted(WORLD_EN.glob("*.md")) if not p.name.startswith("_")]
 
     seen_no, seen_week, seen_world = {}, {}, {}
     for p in daily:
@@ -749,13 +848,15 @@ def main():
         check_weekly(p, seen_week)
     for p in world:
         check_world(p, seen_world)
+    for p in world_en:
+        check_world_en(p)
 
     for w in warns:
         print(f"  警告  {w}")
     for e in errors:
         print(f"  エラー {e}")
 
-    print(f"\n日次{len(daily)}件・週次{len(weekly)}件・世界の定点{len(world)}件を検査："
+    print(f"\n日次{len(daily)}件・週次{len(weekly)}件・世界の定点{len(world)}件（英語版{len(world_en)}件）を検査："
           f"エラー {len(errors)} / 警告 {len(warns)}")
     sys.exit(1 if errors else 0)
 

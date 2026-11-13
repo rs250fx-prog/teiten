@@ -1,6 +1,7 @@
 ---
 import { SITE_NAME, SITE_NAME_JA, SITE_TAGLINE, CADENCE } from '../config';
-import { longDate } from '../lib/content';
+import { longDate, longDateEn } from '../lib/content';
+import { EN, type Lang } from '../i18n';
 
 interface Props {
   /** 最新レポートの日付 'YYYY-MM-DD'。省略時は日付行を出さない */
@@ -9,8 +10,14 @@ interface Props {
   no?: number;
   /** TOP以外では h1 をサイト名にしない（記事タイトルが h1 になるため） */
   asHeading?: boolean;
+  /** 英語版は語標のリンク先・タグライン・更新頻度を英語にする */
+  lang?: Lang;
 }
-const { date, no, asHeading = false } = Astro.props;
+const { date, no, asHeading = false, lang = 'ja' } = Astro.props;
+const home = lang === 'en' ? '/en/' : '/';
+const tagline = lang === 'en' ? EN.tagline : SITE_TAGLINE;
+const cadence = lang === 'en' ? EN.cadence : CADENCE;
+const dateText = date ? (lang === 'en' ? longDateEn(date) : longDate(date)) : undefined;
 
 /**
  * TOPの h1 は媒体名だけでは主題が伝わらないため、タグラインまで含める。
@@ -23,15 +30,15 @@ const Heading = asHeading ? 'h1' : 'div';
 <div class="wrap">
   <div class="mast">
     {no !== undefined && <span class="edge l">No. {no}</span>}
-    <span class="edge r">{CADENCE}</span>
-    {date && <div class="date">{longDate(date)}</div>}
+    <span class="edge r">{cadence}</span>
+    {dateText && <div class="date">{dateText}</div>}
 
     <Heading class="mast-heading">
-      <span class="wordmark"><a href="/">{SITE_NAME}</a></span>
+      <span class="wordmark"><a href={home}>{SITE_NAME}</a></span>
       <span class="tagline">
         <span class="ja">{SITE_NAME_JA}</span>
         <span class="sep" aria-hidden="true"></span>
-        <span class="tag-text">{SITE_TAGLINE}</span>
+        <span class="tag-text">{tagline}</span>
       </span>
     </Heading>
   </div>

@@ -1,0 +1,54 @@
+---
+import Base from '../../../layouts/Base.astro';
+import WorldCard from '../../../components/WorldCard.astro';
+import { listWorldEn } from '../../../lib/content';
+import { EN } from '../../../i18n';
+
+const world = await listWorldEn();
+---
+
+<Base
+  lang="en"
+  alternate="/world/"
+  title={EN.world.title}
+  description={EN.world.lead}
+  breadcrumbs={[{ name: EN.world.title }]}
+>
+  <div class="wrap">
+    <header class="phead">
+      <h1>{EN.world.title}</h1>
+      <p>{EN.world.lead}</p>
+      <div class="count num">{EN.world.count(world.length)}</div>
+    </header>
+
+    {world.length > 0 ? (
+      <div class="wk">
+        {world.map((entry) => <WorldCard entry={entry} lang="en" />)}
+      </div>
+    ) : (
+      <p class="empty">{EN.world.empty}</p>
+    )}
+  </div>
+</Base>
+
+<style>
+  .phead { padding: 48px 0 34px; border-bottom: 1px solid var(--line); }
+  h1 {
+    font-family: var(--se);
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: 18px;
+  }
+  .phead p { font-size: 15.5px; line-height: 1.9; font-weight: 400; color: var(--ink-2); max-width: 62ch; }
+  .count { font-size: 12px; color: var(--muted); margin-top: 18px; }
+  .wk {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 44px 0 60px;
+    border-bottom: 1px solid var(--line);
+  }
+  @media (max-width: 860px) { .wk { grid-template-columns: 1fr; } }
+  .empty { padding: 80px 0; text-align: center; color: var(--muted); border-bottom: 1px solid var(--line); }
+</style>

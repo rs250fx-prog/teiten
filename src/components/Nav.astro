@@ -1,16 +1,30 @@
 ---
 import { NAV, SUBSCRIBE_ENABLED } from '../config';
+import { EN, type Lang } from '../i18n';
+
+interface Props {
+  lang?: Lang;
+  /** 対になる別言語のページ。あれば言語の切り替えリンクを出す */
+  alternate?: string;
+}
+const { lang = 'ja', alternate } = Astro.props;
 
 const path = Astro.url.pathname;
+// 英語版は /en/ の下に置くので、ホームの判定は言語ごとに変える
+const items: readonly { href: string; label: string }[] = lang === 'en' ? EN.nav : NAV;
 const isCurrent = (href: string) =>
-  href === '/' ? path === '/' : path.startsWith(href);
+  href === '/' || href === '/en/' ? path === href : path.startsWith(href);
+// 言語の切り替え。対になるページが無ければ、相手の言語のトップへ
+const switchHref = alternate ?? (lang === 'en' ? '/' : '/en/');
+const switchLabel = lang === 'en' ? EN.langSwitch.label : 'English';
+const switchTitle = lang === 'en' ? EN.langSwitch.title : '英語版';
 ---
 
 <div class="navbar">
   <div class="wrap">
     <div class="bar">
-      <nav class="links" aria-label="サイト内ナビゲーション">
-        {NAV.map((item) => (
+      <nav class="links" aria-label={lang === 'en' ? 'Site navigation' : 'サイト内ナビゲーション'}>
+        {items.map((item) => (
           <a
             href={item.href}
             class:list={['item', { on: isCurrent(item.href) }]}
@@ -19,10 +33,11 @@ const isCurrent = (href: string) =>
         ))}
       </nav>
       <div class="actions">
-        <button class="icon" id="theme-toggle" type="button" aria-label="配色を切り替える">
+        <a class="lang" href={switchHref} title={switchTitle} hreflang={lang === 'en' ? 'ja' : 'en'}>{switchLabel}</a>
+        <button class="icon" id="theme-toggle" type="button" aria-label={lang === 'en' ? EN.themeToggle : '配色を切り替える'}>
           <span aria-hidden="true">◐</span>
         </button>
-        {SUBSCRIBE_ENABLED && <a class="sub-btn" href="/#subscribe">購読する</a>}
+        {SUBSCRIBE_ENABLED && lang === 'ja' && <a class="sub-btn" href="/#subscribe">購読する</a>}
       </div>
     </div>
   </div>
@@ -89,6 +104,19 @@ const isCurrent = (href: string) =>
     transition: .16s;
   }
   .icon:hover { background: var(--surface-2); }
+  /* 言語の切り替え。ナビの項目と同じ重さで、右端にまとめる */
+  .lang {
+    flex: none;
+    font-family: var(--sa);
+    font-size: 12.5px;
+    color: var(--muted);
+    padding: 6px 11px;
+    border: 1px solid var(--line-2);
+    border-radius: 999px;
+    white-space: nowrap;
+    transition: .16s;
+  }
+  .lang:hover { color: var(--ink); background: var(--surface-2); }
   .sub-btn {
     flex: none;
     font-family: var(--sa);

@@ -4,6 +4,7 @@
 
     python tools/review-world.py 2026-w47            # 判定を表示（第46週の論調 × 第47週の JSON）
     python tools/review-world.py 2026-w47 --write    # src/content/world/2026-w47.md の review に書き込む
+    python tools/review-world.py 2026-w47 --write --en   # 英語版 src/content/world-en/2026-w47.md に、英語の note で書き込む
 
 規則
   - 金（xau）・ドル指数（dxy）は前週比 ±0.5%、米10年（us10y）は ±5bp を閾値にする
@@ -22,7 +23,9 @@ from pathlib import Path
 import yaml
 
 WORLD = Path("src/content/world")
+WORLD_EN = Path("src/content/world-en")
 WEEKLY_DATA = Path("src/data/weekly")
+TOPIC_LABEL_EN = {"gold": "Gold", "dollar": "Dollar index", "rates": "10-year yield"}
 
 # 論点 → 週次 JSON の key・単位・閾値。src/lib/world.ts の JUDGE と同じ値
 JUDGE = {
@@ -102,7 +105,8 @@ def fmt(move, unit):
     return f"{sign}{s}"
 
 
-def build(slug):
+def build(slug, lang="ja"):
+    """前週の論調（日本語の原本）を当週の JSON で判定する。lang は note の言語だけに効く"""
     prev = prev_slug(slug)
     prev_path = WORLD / f"{prev}.md"
     if not prev_path.exists():
@@ -127,8 +131,12 @@ def build(slug):
             move, unit, asof, pasof = mv[topic]
             _key, _u, th = JUDGE[topic]
             result, actual = judge(stance, move, th)
-            note = (f"{TOPIC_LABEL[topic]}は前週比 {fmt(move, unit)}"
-                    f"（{pasof[5:].replace('-', '/')}→{asof[5:].replace('-', '/')}）")
+            if lang == "en":
+                note = (f"{TOPIC_LABEL_EN[topic]} {fmt(move, unit)} week on week "
+                        f"({pasof[5:].replace('-', '/')} to {asof[5:].replace('-', '/')})")
+            else:
+                note = (f"{TOPIC_LABEL[topic]}は前週比 {fmt(move, unit)}"
+                        f"（{pasof[5:].replace('-', '/')}→{asof[5:].replace('-', '/')}）")
             items.append({"region": w["region"], "topic": topic, "stance": stance,
                           "result": result, "note": note})
     return {"of": prev, "items": items}, prev
@@ -152,8 +160,9 @@ def main():
         sys.exit(__doc__)
     slug = args[0]
     write = "--write" in sys.argv
+    lang = "en" if "--en" in sys.argv else "ja"
 
-    review, prev = build(slug)
+    review, prev = build(slug, lang)
     block = to_yaml(review)
     print(block)
     if review["items"]:
@@ -162,9 +171,9 @@ def main():
 
     if not write:
         return
-    path = WORLD / f"{slug}.md"
+    path = (WORLD_EN if lang == "en" else WORLD) / f"{slug}.md"
     if not path.exists():
-        sys.exit(f"{path} がありません。先に python tools/new-world.py を実行してください。")
+        sys.exit(f"{path} がありません。先に python tools/new-world.py{' --en ' + slug if lang == 'en' else ''} を実行してください。")
     text = path.read_text(encoding="utf-8")
     # frontmatter の review: ブロック（次のトップレベルのキーまで）を差し替える
     new, n = re.subn(r"^review:\n(?:[ \t]+.*\n|[ \t]*\n)*?(?=^\S)", block, text, count=1, flags=re.M)

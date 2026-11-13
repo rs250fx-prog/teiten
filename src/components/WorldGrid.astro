@@ -5,7 +5,8 @@
  * 数は数えても割合は出さない（件数が少ないうちは1マスで大きく振れる）。
  * split は割れの色、unknown は空のマス。どの窓が揃い、どこで割れたかを一目で見るための表。
  */
-import { REGIONS, TOPICS_W, STANCE, type Stance } from '../lib/world';
+import { REGIONS, TOPICS_W, STANCE, regionLabel, topicLabel, stanceLabel, type Stance } from '../lib/world';
+import { EN, type Lang } from '../i18n';
 
 interface Take { stance: Stance; summary: string }
 interface Window {
@@ -15,8 +16,9 @@ interface Window {
   rates?: Take;
   status: '確定' | '未確認';
 }
-interface Props { windows: Window[] }
-const { windows } = Astro.props;
+interface Props { windows: Window[]; lang?: Lang }
+const { windows, lang = 'ja' } = Astro.props;
+const en = lang === 'en';
 
 const stanceOf = (w: Window | undefined, t: (typeof TOPICS_W)[number]['key']): Stance =>
   w?.[t]?.stance ?? 'unknown';
@@ -31,27 +33,31 @@ const cells = REGIONS.map((r) => ({
 const count = (topic: string, s: Stance) =>
   cells.filter((c) => c.takes.find((x) => x.topic.key === topic)?.stance === s).length;
 const ORDER: Stance[] = ['bull', 'neutral', 'bear', 'split', 'unknown'];
+const countText = (topic: string) =>
+  ORDER.filter((s) => count(topic, s) > 0)
+    .map((s) => (en ? `${stanceLabel(s, 'en')} ${count(topic, s)}` : `${STANCE[s].label}${count(topic, s)}`))
+    .join(en ? ' · ' : '・');
 ---
 
-<section class="wg" aria-label="論調の分布">
-  <div class="sec-head"><h2>論調の分布</h2></div>
+<section class="wg" aria-label={en ? EN.world.distribution : '論調の分布'}>
+  <div class="sec-head"><h2>{en ? EN.world.distribution : '論調の分布'}</h2></div>
   <div class="tbl">
     <table>
       <thead>
         <tr>
-          <th scope="col">窓</th>
-          {TOPICS_W.map((t) => <th scope="col">{t.label}</th>)}
+          <th scope="col">{en ? EN.world.window : '窓'}</th>
+          {TOPICS_W.map((t) => <th scope="col">{topicLabel(t.key, lang)}</th>)}
         </tr>
       </thead>
       <tbody>
         {cells.map((c) => (
           <tr>
-            <th scope="row">{c.region.label}</th>
+            <th scope="row">{regionLabel(c.region.key, lang)}</th>
             {c.takes.map((x) => (
               <td>
-                <span class:list={['cell', x.stance]} title={STANCE[x.stance].label}>
+                <span class:list={['cell', x.stance]} title={stanceLabel(x.stance, lang)}>
                   <span class="m" aria-hidden="true">{STANCE[x.stance].mark}</span>
-                  <span class="t">{STANCE[x.stance].label}</span>
+                  <span class="t">{stanceLabel(x.stance, lang)}</span>
                 </span>
               </td>
             ))}
@@ -60,19 +66,13 @@ const ORDER: Stance[] = ['bull', 'neutral', 'bear', 'split', 'unknown'];
       </tbody>
       <tfoot>
         <tr>
-          <th scope="row">数</th>
-          {TOPICS_W.map((t) => (
-            <td class="num">
-              {ORDER.filter((s) => count(t.key, s) > 0)
-                .map((s) => `${STANCE[s].label}${count(t.key, s)}`)
-                .join('・')}
-            </td>
-          ))}
+          <th scope="row">{en ? EN.world.count_ : '数'}</th>
+          {TOPICS_W.map((t) => <td class="num">{countText(t.key)}</td>)}
         </tr>
       </tfoot>
     </table>
   </div>
-  <p class="src">強気・中立・弱気は各窓の媒体の読み。割れは1窓2媒体で向きが逆だったもの、未確認はその論点の記事が無かったもの。</p>
+  <p class="src">{en ? EN.world.distNote : '強気・中立・弱気は各窓の媒体の読み。割れは1窓2媒体で向きが逆だったもの、未確認はその論点の記事が無かったもの。'}</p>
 </section>
 
 <style>

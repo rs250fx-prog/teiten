@@ -104,17 +104,26 @@ const WORLD_SECTIONS = ['## 総括'];
 export type Kind = 'daily' | 'weekly' | 'world';
 
 export function kindOf(path: string): Kind {
-  return path.includes('/weekly/') ? 'weekly' : path.includes('/world/') ? 'world' : 'daily';
+  // world-en（英語版）も world と同じ検査。URL だけ /en/ の下になる（urlOf）
+  return path.includes('/weekly/') ? 'weekly' : /\/world(-en)?\//.test(path) ? 'world' : 'daily';
+}
+
+export function urlOf(path: string, slug: string): string {
+  const kind = kindOf(path);
+  const dir = { daily: 'reports', weekly: 'weekly', world: 'world' }[kind];
+  const prefix = path.includes('/world-en/') ? '/en' : '';
+  return `https://teiten.trade${prefix}/${dir}/${slug}/`;
 }
 
 /**
  * 公開してよいかを判定する。errors が空なら公開できる。
  * check-report.py のうち、公開の可否に直結する項目だけを見る。
  */
-export function validate(text: string, kind: Kind): string[] {
+export function validate(text: string, kind: Kind, path = ''): string[] {
   const fm = frontmatter(text);
   const bd = body(text);
   const errors: string[] = [];
+  const path_is_en = path.includes('/world-en/');
 
   for (const k of ['title', 'deck']) {
     if (!field(fm, k)) errors.push(`${k} が空です`);
@@ -123,7 +132,7 @@ export function validate(text: string, kind: Kind): string[] {
   if (!desc) errors.push('description が空です');
   else if (desc.length < 80) errors.push(`description が${desc.length}字です（80字以上）`);
 
-  const sections = kind === 'daily' ? DAILY_SECTIONS : kind === 'weekly' ? WEEKLY_SECTIONS : WORLD_SECTIONS;
+  const sections = kind === 'daily' ? DAILY_SECTIONS : kind === 'weekly' ? WEEKLY_SECTIONS : path_is_en ? [] : WORLD_SECTIONS;
   for (const sec of sections) {
     if (!bd.includes(sec)) errors.push(`節がありません: ${sec.replace(/^#+ /, '')}`);
   }
@@ -144,7 +153,8 @@ export function validate(text: string, kind: Kind): string[] {
       if (!['bull', 'neutral', 'bear', 'split', 'unknown'].includes(s)) errors.push(`stance が不正です: ${s}`);
     }
     if (/^\s*summary:\s*""\s*$/m.test(fm) && !/stance:\s*unknown/.test(fm)) errors.push('summary が空の論点があります');
-    if (!bd.includes('情報元：')) errors.push('情報元がありません');
+    if (!bd.includes('情報元：') && !bd.includes('Sources:')) errors.push('情報元がありません');
+    if (path_is_en && !bd.includes('## Summary')) errors.push('節がありません: Summary');
     return errors;
   }
 
@@ -198,8 +208,6 @@ export interface Item {
   errors: string[];
 }
 
-const URL_DIR: Record<Kind, string> = { daily: 'reports', weekly: 'weekly', world: 'world' };
-
 export function toItem(path: string, text: string): Item {
   const kind = kindOf(path);
   const fm = frontmatter(text);
@@ -208,11 +216,11 @@ export function toItem(path: string, text: string): Item {
     kind,
     slug,
     path,
-    no: field(fm, 'no') || `W${field(fm, 'week')}`,
+    no: field(fm, 'no') || `W${field(fm, 'week')}${path.includes('/world-en/') ? ' EN' : ''}`,
     date: field(fm, 'date') || field(fm, 'end'),
     title: field(fm, 'title'),
     draft: field(fm, 'draft') === 'true',
-    url: `https://teiten.trade/${URL_DIR[kind]}/${slug}/`,
-    errors: validate(text, kind),
+    url: urlOf(path, slug),
+    errors: validate(text, kind, path),
   };
 }

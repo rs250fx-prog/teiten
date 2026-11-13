@@ -240,8 +240,13 @@ Claude の cloud routines に登録しているプロンプトの原本。**ル�
        末尾の「情報元：」（読んだ記事をリンク付きリストで。素の URL を並べない）を書く。**窓にも本文にも数値を書かない**（値は週次の JSON から描く）
    (6) `python tools/check-report.py <YYYY-wNN>` を実行し、エラーが 0 になるまで直す（週次と世界の定点の両方を検査する）
    (7) `draft: true` のまま、週次本体と同じコミットに `src/content/world/<YYYY-wNN>.md` を add する（片方だけ出た週を作らない）
+   (8) 英語版を作る。`python tools/new-world.py --en <YYYY-wNN>` で日本語の号から雛形 `src/content/world-en/<YYYY-wNN>.md` を作り
+       （論調・状態・媒体・引用・答え合わせは写される。**変えない**）、title / deck / description / points / 各 summary（英語 220 字以内）/
+       本文（`## Summary` 300 字以上と `Sources:` のリンク付きリスト）を英語で書く。数値は書かない。
+       `python tools/review-world.py <YYYY-wNN> --write --en` で答え合わせの英語の note を書き、`python tools/check-report.py <YYYY-wNN>` を
+       通す（日本語版と突き合わせる）。`draft: true` のまま同じコミットに add する
 8. commit して `main` に push する。`src/data/weekly/<YYYY-wNN>.json`、`note/<YYYY-wNN>.md`、`note/thumb_<YYYYwNN>.png`、`note/info_<YYYYwNN>.png`、
-   `src/content/world/<YYYY-wNN>.md` も add に含める
+   `src/content/world/<YYYY-wNN>.md`、`src/content/world-en/<YYYY-wNN>.md` も add に含める
 
 ## 書き方
 
@@ -317,6 +322,7 @@ Claude の cloud routines に登録しているプロンプトの原本。**ル�
 
 | 日付 | 内容 |
 |---|---|
+| 2026-11-13 | 7-D の (8) として英語版（`src/content/world-en/`。`tools/new-world.py --en` の雛形から、訳す欄だけ英語で書く）を足した。同じ日の下の行と同じく、**登録済みのルーティンの文面にはまだ反映していない** |
 | 2026-11-13 | **週次の手順に 7-D（「世界の定点」）を足した。**`tools/new-world.py` → 主媒体 8 本を読んで 6 窓の論調を書く → `tools/review-world.py --write` → 総括と情報元 → `check-report.py` → 週次本体と同じコミットで下書き push。完了時の報告には未確認の窓と `unknown` の論点の数を足す。**登録済みのルーティン（`trig_016QTPqnayVK9vrrR6HSGWNu`）の文面にはまだ反映していない。**クラウドの実行環境から主 6 本を fetch できるかを確かめてから反映し、第47週（11/21 土）から動かす。初号（第46週）は 11/13 に手で作った |
 | 2026-10-27 | **週次の実行時刻を土曜 9:00 から 14:00 JST に変えた**（cron `CRON_TZ=Asia/Tokyo 0 14 * * 6`。ユーザーが登録側で変更し、原本を合わせた）。Yahoo の日足は土曜13時 JST に確定するため、9時では先物（金・銀・原油・銅）とドル指数の金曜の値が「読み取り」にしかならなかった。14時なら確定値で書ける。プロンプトの「土曜9時の時点で」も14時に直した。`trig_016QTPqnayVK9vrrR6HSGWNu` に反映済み |
 | 2026-10-27 | 10/27 の日次の実行で、実行環境の既定の Node（22.22）ではビルドが止まり、ルーティンが自分で `nvm use 24` に切り替えて通した。**日次の手順6・週次の手順7に `nvm use 24` を明記した。**あわせて日次の手順2-Bに、期限のあるシナリオを期限まで `pending` にする規則と、期限後に元の号の `review` を判定する手順を足した（10/27号が「FOMCまで4,000ドルを挟む」を1日目で `hit` にしたため。同号は `pending` に直した）。両ルーティンに反映済み |
