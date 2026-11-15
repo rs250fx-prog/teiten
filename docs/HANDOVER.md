@@ -256,6 +256,36 @@ insight.factset.com
 記事は `src/content/world-en/<slug>.md`（`python tools/new-world.py --en <slug>` で日本語の号から雛形）。初号の英語版も下書きで作った。
 免責の英訳（`src/i18n.ts` の `EN.disclaimer`）は法的な確認が未了。公開前に一度は専門家に見せる。
 
+### 過去記事の英訳 ★調査済み・辞書だけ着手（2026-11-16）
+
+ユーザーの要望は「過去の記事も英訳してリリースしたい」。**着手したのは `src/i18n.ts` への辞書の追加まで**で、
+ページ部品・コレクション・記事はまだ無い（辞書は未使用。ビルドは通る）。トークンの都合でここで区切った。
+
+**先に測った量**（これを測り直さない）：
+
+| 対象 | 本数 | 1本あたり | 訳す対象 |
+|---|---|---|---|
+| 週次まとめ | 8本（w39〜w46） | 本文 約20,000字＋frontmatter 約60項目 | title / deck / description / points 5件 / performance 25行の label と note / ratioNotes 3 / flows 2 / schedule 約10 / levels 8 と moreLevels 9 / scenarios 3 / bias / 本文4節 |
+| 日次レポート | 40本 | 本文 約25,000字＋13節 | 同等以上 |
+| ページ部品 | 10個 | — | 日本語の文言 約310か所（内訳は下記） |
+
+**設計の判断（済み）：**
+- **方式は world-en と同じ「鏡」**（全 frontmatter を写し、訳す欄だけ英語にする）。重ねる方式（英語は散文だけ持ち、日本語版と JSON から描く）も検討したが、`world-en` と作りが揃うこと、`check-report.py` が値の一致を機械で確かめられることを採った。数値の二重持ちは**検査（日本語版と完全一致）で守る**
+- **`src/data/weekly/<slug>.json` は言語ごとに持たない。**日本語のラベルのまま置き、英語ページは `src/i18n.ts` の `EN_SERIES`・`EN_RATIOS`・`seriesLabel()` で引き直す（この表は追加済み）
+- `performance` の `label` は frontmatter にあるので、英語版の記事ファイル側で訳す（辞書に入れない）
+
+**残りの手順：**
+1. ページ部品に `lang` を通す（`WeeklyPerformance`・`WeeklyRatios`・`WeeklyFlows`・`WeeklyCorrelation`・`WeekRanges`・`PriceLadder`・`ScenarioCards`・`WeeklySchedule`・`Snapshot`。文言は `EN_WEEKLY` に用意済み。`WeeklyCard` は対応済み）
+2. `content.config.ts` に `weekly-en`（スキーマは `weekly` と同じ）、`lib/content.ts` に `listWeeklyEn` / `allWeeklyEn`
+3. `src/pages/en/weekly/index.astro` と `[...slug].astro`（日本語版の骨組みを流用し、部品に `lang="en"`）
+4. `tools/new-weekly.py --en <slug>`（日本語の号から雛形。`new-world.py --en` と同じ作り）
+5. `check-report.py` の `check_weekly_en`（`check_world_en` と同じ考え。**値・変化率・dir・status・key・日付が日本語版と完全一致**、訳す欄が日本語のままでないか、note に日本語版に無い数字が入っていないか）
+6. 記事の英訳 8本。`/admin`・RSS・サイトマップ・`check-html.mjs`・NAV（`EN.nav` に Weekly を足す）・hreflang
+7. SPEC §5・ROUTINES（週次 7-A の英語版）・SKILL.md
+
+**日次40本の英訳は、やらないことを推奨する**（ユーザー未決）。理由：(1) 1日遅れの市場解説は英語圏の既存媒体と差が無く、過去分を遡って訳す読者価値がほぼ無い、(2) 40本で約100万字と量が桁違い、(3) 一度出すと毎朝の定期実行に翻訳が恒久的に乗る（日次は自動公開なので失敗の影響も大きい）。
+英語で差が出るのは週次の**日本固有の材料**（日経225・日本10年債・円建て金・ドル円と介入・日経VI）なので、そこを残す週次を優先する。
+
 残り：
 - **英語版の push**（日本語版の実装は `1e74fcc` で push 済み。英語版はコミットのみ）。push すると `/en/` が出る（初号は下書きなので一覧は空）
 - `/admin` から日本語版 → 英語版の順に公開する

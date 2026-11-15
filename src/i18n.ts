@@ -86,6 +86,142 @@ export const EN = {
   },
 } as const;
 
+/**
+ * 週次まとめの英語版（/en/weekly/）で使う文言。
+ *
+ * 記事側（title / deck / points / performance の note など）は `src/content/weekly-en/` で訳す。
+ * ここに置くのはページ部品の文言と、`src/data/weekly/<slug>.json` から描く系列の名前。
+ * **JSON は日本語のまま**（`fetch-weekly.py` が書く取得値の原本で、言語ごとに持たない）なので、
+ * 英語ページは日本語のラベルをこの表で引き直す。表に無いラベルは日本語のまま出す（欠けても描画は壊さない）。
+ */
+export const EN_WEEKLY = {
+  title: 'Weekly Summary',
+  lead:
+    'A week of daily reports, re-read as movements of money rather than as separate price moves: what happened, and where next week turns. Figures come from the same fixed series as the Japanese edition.',
+  count: (n: number) => `${n} issue${n === 1 ? '' : 's'}`,
+  empty: 'No weekly summary has been published in English yet.',
+  week: 'WEEK',
+  points: 'This week in brief',
+  performance: 'Weekly performance by asset',
+  instruments: (n: number) => `${n} instruments`,
+  other: 'Other',
+  /** src/lib/weekly.ts の GROUPS のキー */
+  groups: {
+    metals: 'Precious metals',
+    rates: 'Rates',
+    fx: 'FX',
+    commodities: 'Commodities',
+    equities: 'Equities',
+    crypto: 'Crypto',
+    vol: 'Volatility',
+    credit: 'Credit',
+  } as Record<string, string>,
+  unconfirmed: 'Unconfirmed',
+  reading: 'Reading',
+  readingTitle: 'An intraday or partial figure, not a closing value',
+  ratios: 'Ratios of the week',
+  lastWeeks: (n: number) => `last ${n} weeks`,
+  range: 'range',
+  ratiosSrc:
+    'All ratios are COMEX front-month futures: gold (GC=F) against silver (SI=F), WTI crude (CL=F) and copper (HG=F, USD per pound), taken from the last trading day of each week (Yahoo Finance). In a week when the front month rolls, the ratio spans two contracts.',
+  flows: 'Positioning and flows',
+  fomc: 'What the market prices for the FOMC',
+  meeting: 'meeting',
+  hikesOf: (dir: 'hike' | 'cut', n: string) => `${n} moves of 0.25% (${dir})`,
+  fomcSrc: (effr: string, asof: string) =>
+    `The policy rate implied after each meeting, derived from fed funds futures (CBOT). The starting point is the effective fed funds rate of ${effr}% (${asof}, FRED EFFR). This follows the same method as CME FedWatch but is not FedWatch's own figure.`,
+  cot: 'CFTC positioning (net speculative, 4 weeks)',
+  wow: 'week on week',
+  cotSrc:
+    'CFTC Commitments of Traders. Positions as of Tuesday, published on Friday. Gold, silver and crude are managed money; the yen is leveraged funds. Units are contracts.',
+  etf: 'ETF flows',
+  btcEtf: 'US spot bitcoin ETFs (total)',
+  millionUsd: 'm',
+  notTallied: 'not yet tallied',
+  missing: 'Unconfirmed:',
+  correlation: 'Weekly correlation',
+  corrWords: {
+    none: 'little relation',
+    weakPos: 'weakly positive',
+    weakNeg: 'weakly negative',
+    pos: 'positive',
+    neg: 'negative',
+  },
+  corrSrc: (base: string, source: string) =>
+    `Correlation between ${base} and the weekly change in each indicator (bp for the real yield, percent for the rest). −1 means they moved in opposite directions, +1 that they moved together. Eight weeks is a short window and one large week can flip the sign. It does not show causation. ${source}`,
+  ranges: 'Weekly ranges',
+  high: 'High',
+  low: 'Low',
+  span: 'Range',
+  openClose: 'Open',
+  rangesSrc:
+    'Yahoo Finance (gold and silver are COMEX front-month futures, daily; USD/JPY is hourly, cut at 17:00 New York). Levels differ slightly from spot gold (USAGOLD).',
+  ladder: 'Technical levels',
+  ladderAt: (asset: string) => `Technical levels: ${asset}`,
+  ladderWeek: 'Technical levels (week end)',
+  kind: { resistance: 'Resistance', current: 'Last', support: 'Support' },
+  scenarios: 'Scenarios for next week',
+  cases: (n: number) => `${n} cases`,
+  caseName: { bull: 'Bull Case', base: 'Base Case', bear: 'Bear Case' },
+  caseJa: { bull: 'Upside', base: 'Base', bear: 'Downside' },
+  target: 'Price target',
+  schedule: 'Key events next week',
+  starNote: '★ is the one to watch',
+  mostImportant: 'Most important',
+  bias: 'Market Bias (next week)',
+  railNumbers: 'Figures of the week',
+  railDaily: 'Daily reports in this week',
+  railDailyMore: 'Archive (Japanese) →',
+  dailyJa: 'The daily reports behind this summary are published in Japanese only.',
+  snapshot: 'Market snapshot',
+} as const;
+
+/**
+ * `src/data/weekly/<slug>.json` に入っている日本語のラベルを英語に引き直す表。
+ * JSON は言語ごとに持たないので、ここが唯一の対応表になる。
+ */
+export const EN_SERIES: Record<string, string> = {
+  // 週足のレンジ・相関・建玉の銘柄
+  '金（COMEX 先物）': 'Gold (COMEX futures)',
+  '銀（COMEX 先物）': 'Silver (COMEX futures)',
+  '金（COMEX）': 'Gold (COMEX)',
+  '銀（COMEX）': 'Silver (COMEX)',
+  'WTI原油（NYMEX）': 'WTI crude (NYMEX)',
+  '円（CME）': 'Japanese yen (CME)',
+  'USD/JPY': 'USD/JPY',
+  '実質金利（TIPS10年）': 'Real yield (10-year TIPS)',
+  'ドル指数 DXY': 'Dollar index (DXY)',
+  'Nasdaq総合': 'Nasdaq Composite',
+  'BTC/USD': 'BTC/USD',
+  // 建玉の主体
+  'マネージド・マネー': 'Managed money',
+  'レバレッジド・ファンド': 'Leveraged funds',
+  // 相関の基準と出典
+  '金（COMEX 先物 GC=F）の週間変化率': 'the weekly change in gold (COMEX futures, GC=F)',
+  '算出：Yahoo Finance・FRED DFII10・CoinGecko。各週の最後の取引日どうしの変化':
+    'Derived from Yahoo Finance, FRED DFII10 and CoinGecko, comparing the last trading day of each week.',
+};
+
+/** レシオの名前と説明。キーは JSON の `key` */
+export const EN_RATIOS: Record<string, { label: string; gloss: string }> = {
+  gold_silver: {
+    label: 'Gold/silver',
+    gloss: 'How many ounces of silver one ounce of gold buys. A rising week points to fear buying, a falling week to buying across commodities.',
+  },
+  gold_oil: {
+    label: 'Gold/oil',
+    gloss: 'How many barrels of crude one ounce of gold buys. A rising week points to worries about growth, a falling week to inflation or supply.',
+  },
+  gold_copper: {
+    label: 'Gold/copper',
+    gloss: 'Gold against copper, the proxy for the economy. A rising week points to worries about growth, a falling week to confidence in it.',
+  },
+};
+
+/** JSON の日本語ラベルを言語に合わせて返す。表に無ければ日本語のまま */
+export const seriesLabel = (label: string, lang: Lang = 'ja') =>
+  lang === 'en' ? (EN_SERIES[label] ?? label) : label;
+
 /** 窓の地域名・論点・論調・判定の英語表記 */
 export const EN_LABELS = {
   region: { na: 'North America', eu: 'Europe', ru: 'Russia', cn: 'China', in: 'India', me: 'Middle East' } as Record<string, string>,
