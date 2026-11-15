@@ -283,8 +283,10 @@ note を入口にサイトへ送客する。`note/YYYY-MM-DD.md` に置く
 末尾にサイトへのリンクと、そこで読めるものの箇条書きを置く。
 
 ```
-https://teiten.trade/reports/YYYY-MM-DD/
+https://teiten.trade/reports/YYYY-MM-DD/?utm_source=note&utm_medium=referral&utm_campaign=daily&utm_content=YYYY-MM-DD
 ```
+
+**リンクには必ず UTM パラメータを付ける。**note からの流入を GA4 で数えるため（2026-11-16）。`utm_content` は号の日付。素の URL を貼ると note からの訪問が「参照元 note.com」に埋もれ、号ごとに数えられない。ページの canonical は素の URL を指すので、パラメータ付きの URL が重複ページになることはない
 
 書き上げたら、本文をそのままチャットに出力する（note は手動コピペ運用のため）。
 
@@ -497,7 +499,7 @@ python tools/check-report.py 2026-w38
 - 冒頭の大・中・小タイトル。小タイトルは「定点観測 週次まとめ 第NN週」
 - 節は「今週の資金フロー」（総括の連鎖を太字1行＋本文）→「今週の数字」（`performance` のうち金・銀・米10年・ドル指数・ドル円・WTI・日経・BTC の値と変化を箇条書き。全25行は並べない。未確認は未確認と書く）→「今週の論点」（2つまで）→「Market Bias（来週）」（`bias` と監視項目3つ）→「続きはサイトで」
 - **シナリオの3案・テクニカル・レベルの全段・来週の予定の全件・出典はサイトに残す**
-- 末尾のリンクは `https://teiten.trade/weekly/YYYY-wNN/`
+- 末尾のリンクは `https://teiten.trade/weekly/YYYY-wNN/?utm_source=note&utm_medium=referral&utm_campaign=weekly&utm_content=YYYY-wNN`（日次と同じく UTM を必ず付ける。`utm_campaign=weekly`）
 - 書き上げたら、本文をそのままチャットに出力する
 
 ## 世界の定点

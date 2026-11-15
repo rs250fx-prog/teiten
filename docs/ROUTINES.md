@@ -87,7 +87,8 @@ Claude の cloud routines に登録しているプロンプトの原本。**ル�
    Astro が求める 22.23.4 以上に届かずビルドが止まる。`nvm use 24` を先に実行する。以降の `node tools/...` も同じシェルで）。**公開状態（draft: false）にした号でビルドが失敗したら、
    `python tools/publish-gate.py <YYYY-MM-DD> --hold` で下書きに戻す。**下書きのままの号は、npm が失敗しても
    検査が通っていれば次へ進み、その旨を結果に書く
-7. note 用の簡易版を `note/<YYYY-MM-DD>.md` に書く（SKILL.md のステップ8）
+7. note 用の簡易版を `note/<YYYY-MM-DD>.md` に書く（SKILL.md のステップ8）。末尾のサイトへのリンクには UTM を付ける：
+   `https://teiten.trade/reports/<YYYY-MM-DD>/?utm_source=note&utm_medium=referral&utm_campaign=daily&utm_content=<YYYY-MM-DD>`
 7-B. frontmatter の `thumb` に大タイトル・中タイトル・小見出し・数値5枠の寸評を書き、
    `node tools/make-thumb.mjs <YYYY-MM-DD>` で note 用サムネイルを書き出す（SKILL.md のステップ8-B）。
    **エラーが出たら文言を短くして、通るまでやり直す。**`thumb` に数値の欄は無い（snapshot から取る）。
@@ -218,7 +219,7 @@ Claude の cloud routines に登録しているプロンプトの原本。**ル�
    `nvm use 24` を先に実行する。npm が失敗しても、検査が通っていれば次へ進み、その旨を結果に書く）
 7-A. note 用の簡易版を `note/<YYYY-wNN>.md` に書く（SKILL.md の「週次まとめ」の「note用の簡易版」）。
    日次の note と同じ線引き・書式で、数字と結論は出し切り、シナリオの3案・テクニカル・レベルの全段・出典はサイトに残す。
-   末尾のリンクは `https://teiten.trade/weekly/<YYYY-wNN>/`
+   末尾のリンクは `https://teiten.trade/weekly/<YYYY-wNN>/?utm_source=note&utm_medium=referral&utm_campaign=weekly&utm_content=<YYYY-wNN>`（UTM を必ず付ける）
 7-B. frontmatter の `thumb` に大タイトル・中タイトル・小見出し・数値5枠の寸評を書き、
    `node tools/make-thumb.mjs <YYYY-wNN>` で note 用サムネイルを書き出す（SKILL.md のステップ8-B）。
    **エラーが出たら文言を短くして、通るまでやり直す。**`thumb` に数値の欄は無い（performance から取る）。

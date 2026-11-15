@@ -633,6 +633,19 @@ https://teiten.trade/info/2026-10-15.png    日次
 
 `/info/` も noindex・5分キャッシュ（`public/_headers`）。定期実行の完了報告に、サムネイルと図解の両方のURLが載る。
 
+### note からのリンク（UTM）
+
+note の簡易版の末尾に貼るサイトへのリンクには、流入を GA4 で号ごとに数えるため UTM パラメータを付ける（2026-11-16〜）。
+
+```
+https://teiten.trade/reports/2026-11-16/?utm_source=note&utm_medium=referral&utm_campaign=daily&utm_content=2026-11-16   日次
+https://teiten.trade/weekly/2026-w46/?utm_source=note&utm_medium=referral&utm_campaign=weekly&utm_content=2026-w46     週次
+```
+
+- `utm_source=note` / `utm_medium=referral` は固定。`utm_campaign` は `daily` か `weekly`、`utm_content` は号のスラッグ
+- 各ページの canonical は素の URL を指すので、パラメータ付きの URL が検索で重複ページになることはない
+- 手順は `.claude/skills/teiten-report/SKILL.md` のステップ8と週次の「note用の簡易版」、`docs/ROUTINES.md` の日次 7・週次 7-A
+
 ### レポートを追加する
 
 Claude Code なら `/teiten-report` を呼べば、データ収集から公開まで通しで行う
@@ -697,6 +710,7 @@ python tools/make-og.py
 
 | 日付 | 内容 |
 |---|---|
+| 2026-11-16 | **note の簡易版からサイトへのリンクに UTM パラメータを付けることにした（ユーザー指示）。**note → メディアの流入を GA4 で号ごとに数えるため。形式は `?utm_source=note&utm_medium=referral&utm_campaign=<daily か weekly>&utm_content=<スラッグ>`。canonical は素の URL のまま。SKILL.md・ROUTINES.md の手順を合わせて直し、11/16号の note から適用した。過去の note ファイルは note 側に貼り済みのため直していない。§10「note からのリンク（UTM）」 |
 | 2026-11-13 | **英語版（`/en/`）を実装した。範囲は「世界の定点」とサイト紹介だけ**（日次の12節を毎日訳すのは量が多く、YMYL の媒体で機械翻訳の金融分析を出すのは信用の負債になる。世界の定点は構造化された枠が主で、訳す散文は要約と総括だけ）。Astro の `i18n`（日本語は接頭辞なし、英語は `/en/`）、`src/i18n.ts`（枠の文言と免責の英訳。免責には「日本でもどの国でも投資助言の登録を受けていない」「食い違えば日本語版が優先」を足した。法的な確認は未了）、`world-en` コレクション（スラッグは日本語と同じ。英語版だけの号は作らない）、`src/pages/en/`（トップ・一覧・記事・About）、`Base`/`Nav`/`Masthead`/`SiteFooter`/`Seo` の `lang` と `alternate`（hreflang は対があるときだけ。ナビの右端に言語の切り替え）、`rehype-sources.mjs` と `check-html.mjs` の「Sources:」対応、`tools/new-world.py --en`（日本語の号から雛形。論調・媒体・引用・答え合わせは写し、訳す欄だけ空）、`tools/review-world.py --en`（英語の note）、`check-report.py` の `check_world_en`（論調・状態・媒体・引用・答え合わせが日本語と同じか、訳す欄が日本語のままでないか、日本語が下書きなのに英語が公開になっていないか）、`/admin` の `world-en` 対応。英語ページはティッカーと日付・号数を出さず、タグはリンクにしない。初号（第46週）の英語版を下書きで作った。詳細は §5「world」の「英語版」 |
 | 2026-11-13 | **「世界の定点」を実装し、初号（第46週）を下書きで作った。**`world` コレクション（`windows` 6 件固定・順序固定、`Take.stance` 5 値、`physicalNotes`、`review`）、`src/data/world-sources.json`（取得元の実体。`src/config.ts` の `WORLD_SOURCES` と `tools/new-world.py`・`check-report.py` が同じファイルを読む。TS と Python に二重に持たない）、`NAV` の「世界の定点」（「答え合わせ」の前）、`/world/`・`/world/<slug>/`（`WorldWindows`・`WorldGrid`・`WorldReview`・`WorldCard`）、`tools/new-world.py`（雛形）、`tools/review-world.py`（前週の論調を当週の週次 JSON の前週比で機械判定。`--write` で `review` を書く）、`check-report.py` の `check_world`（入れ子の frontmatter を YAML として読む。6 窓の順、stance の 5 値、要約 80 字、媒体のホスト照合、未確認の窓に論調が無いか、`review` を `review-world.py` の結果と突き合わせ、総括の字数、情報元の書式）、`/admin` の world 対応（一覧・検査・公開）、RSS・サイトマップ・`check-html.mjs` の対象に追加。**出典は 11/6 の「情報元のアコーディオン」（§7）に合わせ、本文は「情報元：」＋リンク付きリストで自動で閉じ、窓カードの出典リンクは露出のまま**（1 窓 1〜2 本で、閉じる理由が当てはまらない）。初号は第45週でなく第46週にした（実装が 11/13 までずれたため）。定期実行への追加（週次 7-D）は第47週から。手順は `docs/ROUTINES.md` に書いたが、**登録済みのルーティンの文面はまだ変えていない**（クラウドの実行環境から主 6 本を fetch できるかを先に確かめる）。初号の 6 窓は、北米・欧州・ロシア・中国・中東が金に弱気・ドルと米金利に強気で一致し、インドは未確認。ロシアは金の記事が無く `unknown` |
 | 2026-11-06 | **`/reports/` の上部のタグ索引を削除した（ユーザー指示）。**タグが83種類まで増え、PC・スマホとも一覧の縦幅を占めていたため。全タグは `/topics/` にあり、全ページのナビと各号のタグリンクからたどれる。週次の一覧にも元からタグ索引は無い |
