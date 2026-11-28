@@ -1,0 +1,260 @@
+---
+/**
+ * 週次まとめの英語版の記事ページ。日本語の /weekly/<slug>/ と同じ骨組みで、
+ * 本文は src/content/weekly-en/<slug>.md、部品の文言は src/i18n.ts の EN_WEEKLY。
+ * 数値は日本語版と同じ frontmatter と src/data/weekly/<slug>.json から描く。
+ * 日本語版が無い号は作らない（check-report.py が突き合わせる）。
+ */
+import { render } from 'astro:content';
+import Base from '../../../layouts/Base.astro';
+import Snapshot from '../../../components/Snapshot.astro';
+import RailList from '../../../components/RailList.astro';
+import WeeklyPerformance from '../../../components/WeeklyPerformance.astro';
+import WeeklySchedule from '../../../components/WeeklySchedule.astro';
+import PriceLadder from '../../../components/PriceLadder.astro';
+import ScenarioCards from '../../../components/ScenarioCards.astro';
+import WeeklyRatios from '../../../components/WeeklyRatios.astro';
+import WeeklyFlows from '../../../components/WeeklyFlows.astro';
+import WeeklyCorrelation from '../../../components/WeeklyCorrelation.astro';
+import WeekRanges from '../../../components/WeekRanges.astro';
+import { allWeeklyEn, allWeekly, listReports, monthDay, longDateEn, isoJst } from '../../../lib/content';
+import { weeklyData } from '../../../lib/weekly';
+import { EN, EN_WEEKLY as W } from '../../../i18n';
+import { SITE_URL, OPERATOR, PUBLISHER_URL, EDITOR } from '../../../config';
+
+export async function getStaticPaths() {
+  const entries = await allWeeklyEn();
+  return entries.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const d = entry.data;
+// 機械取得の数値。日本語版と同じ JSON を読む（英語用の JSON は持たない）
+const wd = weeklyData(entry.id);
+const railQuotes = d.performance.map((q) =>
+  q.status === '未確認' || !q.value ? { ...q, value: W.unconfirmed, change: '' } : q,
+);
+
+// 日本語の原本があるときだけ hreflang と原文へのリンクを出す
+const ja = (await allWeekly()).find((w) => w.id === entry.id);
+const alternate = ja ? `/weekly/${entry.id}/` : undefined;
+
+// その週に発行した日次（日本語のみ）。右列から辿れるようにする。
+// **見出しは日本語なので出さない。**英語のページに日本語の長い見出しが並ぶのを避け、日付と号数だけにする
+const reports = await listReports();
+const inWeek = reports.filter((r) => r.data.date >= d.start && r.data.date <= d.end).reverse();
+const railItems = inWeek.map((r) => ({
+  href: `/reports/${r.id}/`,
+  meta: monthDay(r.data.date),
+  title: `Daily report No. ${r.data.no} (Japanese)`,
+  value: r.data.headline && { text: r.data.headline.value, dir: r.data.headline.dir },
+}));
+
+const pageUrl = new URL(`/en/weekly/${entry.id}/`, SITE_URL).href;
+const modifiedIso = isoJst(d.date ?? d.end, d.updated);
+const schema = [
+  {
+    '@type': 'NewsArticle',
+    '@id': `${pageUrl}#article`,
+    headline: d.title,
+    description: d.description || d.deck,
+    datePublished: d.date ?? d.end,
+    dateModified: modifiedIso ?? d.date ?? d.end,
+    inLanguage: 'en',
+    isAccessibleForFree: d.access === 'public',
+    articleSection: W.title,
+    keywords: d.tags.join(', '),
+    url: pageUrl,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': pageUrl },
+    image: new URL(d.ogImage ?? '/og-default.png', SITE_URL).href,
+    author: {
+      '@type': 'Person',
+      name: EDITOR.name,
+      jobTitle: 'Editor',
+      url: `${SITE_URL}/en/about/#editor`,
+      worksFor: { '@type': 'Organization', name: OPERATOR.name, url: PUBLISHER_URL },
+    },
+    publisher: { '@id': `${SITE_URL}/#organization` },
+    isPartOf: { '@id': `${SITE_URL}/#website` },
+    ...(alternate
+      ? { translationOfWork: { '@type': 'NewsArticle', '@id': `${new URL(alternate, SITE_URL).href}#article` } }
+      : {}),
+  },
+];
+const breadcrumbs = [{ name: W.title, path: '/en/weekly/' }, { name: d.title }];
+---
+
+<Base
+  lang="en"
+  alternate={alternate}
+  title={d.title}
+  description={d.description || d.deck}
+  type="article"
+  ogImage={d.ogImage}
+  publishedTime={d.date ?? d.end}
+  modifiedTime={modifiedIso}
+  unlisted={d.unlisted}
+  schema={schema}
+  breadcrumbs={breadcrumbs}
+>
+  <div class="wrap">
+    <div class="article-layout">
+    <div class="article-main">
+    <article>
+      <nav class="crumb" aria-label="Breadcrumb">
+        <a href="/en/">{EN.home}</a>
+        <span aria-hidden="true">/</span>
+        <a href="/en/weekly/">{W.title}</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">{W.week} {d.week}</span>
+      </nav>
+
+      <header class="head">
+        <div class="rubric">
+          <span class="num">{W.week} {d.week}</span>
+          <span class="rule" aria-hidden="true"></span>
+          <span class="num">{monthDay(d.start)} — {monthDay(d.end)}</span>
+        </div>
+        <h1>{d.title}</h1>
+        <p class="deck">{d.deck}</p>
+        <div class="by">
+          <span>Financial and Marketing M16</span>
+          <span>{EN.world.editor}: <a href="/en/about/#editor">{EDITOR.name}</a></span>
+          <span>{EN.world.published} {longDateEn(d.date ?? d.end)}</span>
+          {d.updated && <span>{EN.world.updated} {d.updated}</span>}
+        </div>
+        {/* タグは日本語のトピック名なので英語版では出さない（リンクでもないため情報にならない） */}
+        {alternate && (
+          <p class="tr">{EN.world.translated} <a href={alternate} hreflang="ja">{EN.world.original}</a></p>
+        )}
+      </header>
+
+      {d.points.length > 0 && (
+        <section class="points" aria-label={W.points}>
+          <div class="points-h">{W.points}</div>
+          <ol>
+            {d.points.map((p) => <li>{p}</li>)}
+          </ol>
+        </section>
+      )}
+
+      <WeeklyPerformance rows={d.performance} lang="en" />
+
+      {wd && <WeeklyRatios ratios={wd.ratios} notes={d.ratioNotes} lang="en" />}
+
+      {(wd || d.flows.length > 0) && <WeeklyFlows data={wd} flows={d.flows} lang="en" />}
+
+      {wd && <WeeklyCorrelation data={wd.correlation} lang="en" />}
+
+      <PriceLadder
+        levels={d.levels}
+        lang="en"
+        label={d.moreLevels.length > 0 ? W.ladderAt('Gold') : W.ladderWeek}
+      />
+      {d.moreLevels.map((m) => (
+        <PriceLadder levels={m.levels} lang="en" label={W.ladderAt(m.asset)} />
+      ))}
+      {wd && <WeekRanges ranges={wd.ranges} lang="en" />}
+
+      <div class="prose">
+        <Content />
+      </div>
+
+      <div class="prose">
+        <ScenarioCards scenarios={d.scenarios} lang="en" />
+        <WeeklySchedule days={d.schedule} lang="en" />
+      </div>
+
+      {d.bias && (
+        <section class="bias">
+          <div class="bias-h">{W.bias}</div>
+          <p>{d.bias}</p>
+        </section>
+      )}
+    </article>
+    </div>
+
+    <aside class="article-rail">
+      <div class="article-rail-in">
+        <div class="rail-only">
+          <Snapshot quotes={railQuotes} variant="list" heading={W.railNumbers} lang="en" />
+        </div>
+        <RailList
+          heading={W.railDaily}
+          items={railItems}
+          moreHref="/reports/"
+          moreLabel={W.railDailyMore}
+          clamp={1}
+        />
+      </div>
+    </aside>
+    </div>
+  </div>
+</Base>
+
+<style>
+  article { padding-top: 34px; }
+  .crumb {
+    display: flex; gap: 9px; flex-wrap: wrap;
+    font-family: var(--sa); font-size: 12.5px; color: var(--muted); margin-bottom: 22px;
+  }
+  .crumb a:hover { color: var(--accent); }
+  .rubric {
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--sa); font-size: 11px; letter-spacing: .14em; color: var(--accent); margin-bottom: 20px;
+  }
+  .rubric .rule { flex: 1; height: 1px; background: var(--line); display: block; }
+  h1 {
+    font-family: var(--se);
+    font-size: clamp(25px, 3.4vw, 38px);
+    font-weight: 700; line-height: 1.32; margin-bottom: 22px; max-width: 30ch;
+    text-wrap: balance;
+  }
+  .deck { font-size: 16.5px; line-height: 1.85; font-weight: 400; color: var(--ink-2); max-width: 62ch; margin-bottom: 26px; }
+  .by {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    font-family: var(--sa); font-size: 11.5px; color: var(--muted);
+    padding-top: 18px; border-top: 1px solid var(--line);
+  }
+  .tags { margin-top: 14px; }
+  /* 英語版のタグはトピックページ（日本語）に飛ばさない。飾りのチップだけ */
+  .tags.plain span {
+    display: inline-block; font-family: var(--sa); font-size: 11.5px; color: var(--muted);
+    border: 1px solid var(--line-2); border-radius: 999px; padding: 2px 10px; margin: 0 6px 6px 0;
+  }
+  .tr { margin-top: 12px; font-size: 13px; color: var(--muted); }
+  .tr a { color: var(--accent); }
+  .prose { max-width: 68ch; padding: 34px 0 0; }
+
+  .points { margin: 34px 0 0; background: var(--surface-2); border-radius: var(--r); padding: 28px 32px; }
+  .points-h {
+    font-family: var(--sa); font-size: 10.5px; letter-spacing: .16em; color: var(--muted);
+    padding-bottom: 12px; margin-bottom: 4px; border-bottom: 1px solid var(--line-2);
+  }
+  .points ol { list-style: none; counter-reset: pt; }
+  .points li {
+    counter-increment: pt;
+    display: grid; grid-template-columns: 34px 1fr; gap: 6px; align-items: baseline;
+    padding: 14px 0; border-bottom: 1px solid var(--line);
+    font-size: 15px; line-height: 1.8; color: var(--ink-2);
+  }
+  .points li:last-child { border-bottom: 0; }
+  .points li::before {
+    content: counter(pt, decimal-leading-zero);
+    font-family: var(--sa); font-size: 10.5px; letter-spacing: .1em; color: var(--accent);
+  }
+
+  .bias {
+    margin: 10px 0 56px; max-width: 68ch;
+    background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+    border-radius: var(--r); padding: 26px 30px;
+  }
+  .bias-h {
+    font-family: var(--sa); font-size: 10.5px; letter-spacing: .16em; color: var(--accent); margin-bottom: 12px;
+  }
+  .bias p { font-size: 16px; line-height: 1.9; color: var(--ink); }
+</style>

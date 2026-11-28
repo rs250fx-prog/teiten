@@ -98,21 +98,28 @@ const WEEKLY_SECTIONS = [
   '## 週の核心テーマ', '## 今週の主要イベント振り返り',
   '## 今週の資金フロー構造', '## 来週の備え',
 ];
+// 週次の英語版（src/content/weekly-en）。見出しは英語なので別に持つ
+const WEEKLY_EN_SECTIONS = [
+  '## The core theme of the week', '## Key events, reviewed',
+  '## How money moved this week', '## Looking to next week',
+];
 // 世界の定点（docs/SPEC.md §5 world）。本文は総括と情報元だけ
 const WORLD_SECTIONS = ['## 総括'];
 
 export type Kind = 'daily' | 'weekly' | 'world';
 
+/** 英語版（`-en` のコレクション）かどうか */
+export const isEn = (path: string) => /\/(weekly|world)-en\//.test(path);
+
 export function kindOf(path: string): Kind {
-  // world-en（英語版）も world と同じ検査。URL だけ /en/ の下になる（urlOf）
-  return path.includes('/weekly/') ? 'weekly' : /\/world(-en)?\//.test(path) ? 'world' : 'daily';
+  // 英語版も日本語版と同じ種類として検査する。URL だけ /en/ の下になる（urlOf）
+  return /\/weekly(-en)?\//.test(path) ? 'weekly' : /\/world(-en)?\//.test(path) ? 'world' : 'daily';
 }
 
 export function urlOf(path: string, slug: string): string {
   const kind = kindOf(path);
   const dir = { daily: 'reports', weekly: 'weekly', world: 'world' }[kind];
-  const prefix = path.includes('/world-en/') ? '/en' : '';
-  return `https://teiten.trade${prefix}/${dir}/${slug}/`;
+  return `https://teiten.trade${isEn(path) ? '/en' : ''}/${dir}/${slug}/`;
 }
 
 /**
@@ -123,7 +130,7 @@ export function validate(text: string, kind: Kind, path = ''): string[] {
   const fm = frontmatter(text);
   const bd = body(text);
   const errors: string[] = [];
-  const path_is_en = path.includes('/world-en/');
+  const path_is_en = isEn(path);
 
   for (const k of ['title', 'deck']) {
     if (!field(fm, k)) errors.push(`${k} が空です`);
@@ -132,7 +139,14 @@ export function validate(text: string, kind: Kind, path = ''): string[] {
   if (!desc) errors.push('description が空です');
   else if (desc.length < 80) errors.push(`description が${desc.length}字です（80字以上）`);
 
-  const sections = kind === 'daily' ? DAILY_SECTIONS : kind === 'weekly' ? WEEKLY_SECTIONS : path_is_en ? [] : WORLD_SECTIONS;
+  const sections =
+    kind === 'daily'
+      ? DAILY_SECTIONS
+      : kind === 'weekly'
+        ? (path_is_en ? WEEKLY_EN_SECTIONS : WEEKLY_SECTIONS)
+        : path_is_en
+          ? []
+          : WORLD_SECTIONS;
   for (const sec of sections) {
     if (!bd.includes(sec)) errors.push(`節がありません: ${sec.replace(/^#+ /, '')}`);
   }

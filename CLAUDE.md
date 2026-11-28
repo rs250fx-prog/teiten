@@ -9,7 +9,7 @@
 3. **`docs/SOURCES.md`** — 指標の取得元。**数字を書く前に必ず参照すること。**
 4. `.claude/skills/teiten-report/SKILL.md` — レポート作成の手順（日次・週次・note版）
 5. `docs/ROUTINES.md` — 定期実行のプロンプト原本。**ルーティン側を直したらここも直す**
-6. `D:\OneDrive\01_仕事・事業\M16BIZ\playbook\03-PITFALLS.md` — 案件をまたぐ罠。**一番重要**
+6. `D:\01_仕事・事業\M16BIZ\playbook\03-PITFALLS.md` — 案件をまたぐ罠。**一番重要**
 
 ---
 

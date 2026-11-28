@@ -533,3 +533,14 @@ python tools/check-report.py 2026-w47      # 週次と世界の定点の両方�
 - 数値は書かない（値は週次の JSON から描く）。売買の推奨は書かない
 - 答え合わせの英語の note は `python tools/review-world.py YYYY-wNN --write --en`
 - `draft: true` のまま、日本語版と同じコミットに add する。公開は人が `/admin` から、日本語版 → 英語版の順
+
+## 週次の英語版（/en/weekly/）
+
+日本語の号が正本。`python tools/new-weekly-en.py YYYY-wNN` で雛形を作ると、訳す欄だけが空になり、元の日本語が行末に `# JA:` で残る。
+
+- 訳すのは散文だけ：title / deck / description / points / performance の label と note / ratioNotes / flows の label と note / schedule の label / levels と moreLevels の note と asset / scenarios / bias / 本文
+- **写すだけの欄は変えない**：`key` / `group` / `value` / `change` / `dir` / `status` / `kind` / 日付 / `schedule` の `key` / `flows` の `source`。`status` の `読み取り`・`未確認` は列挙値なので日本語のまま置く（表示の英語はページ側が出す）
+- **数値は日本語版に出てくるものだけを書く。**`check-report.py` が訳文の数字を日本語版の同じ欄と突き合わせ、無い数字はエラーにする（万・億・兆 と billion の言い換えは許す）。「7〜9月期」は "July–September"（"Q3" は 3 が原文に無い）
+- 本文の節は `## The core theme of the week` / `## Key events, reviewed` / `## How money moved this week` / `## Looking to next week`。出典は `Sources:` ＋リンク付きリスト
+- `thumb` と `infographic` は英語版に持たない。タグはページに出さない
+- `draft: true` のまま、日本語版と同じコミットに add する。公開は人が `/admin` から

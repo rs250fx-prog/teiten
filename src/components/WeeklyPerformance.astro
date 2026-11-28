@@ -10,6 +10,7 @@
  * group の無い W43 までの行は label から振り分ける（src/lib/weekly.ts の inferGroup）。
  */
 import { GROUPS, inferGroup, type GroupKey } from '../lib/weekly';
+import { EN_WEEKLY as W, type Lang } from '../i18n';
 
 interface Row {
   label: string;
@@ -22,24 +23,26 @@ interface Row {
 }
 interface Props {
   rows: Row[];
+  lang?: Lang;
 }
-const { rows } = Astro.props;
+const { rows, lang = 'ja' } = Astro.props;
+const en = lang === 'en';
 
 const tagged = rows.map((r) => ({ ...r, g: r.group ?? inferGroup(r.label) }));
 const sections = [
-  ...GROUPS.map((g) => ({ label: g.label, rows: tagged.filter((r) => r.g === g.key) })),
-  { label: 'その他', rows: tagged.filter((r) => !r.g) },
+  ...GROUPS.map((g) => ({ label: en ? W.groups[g.key] : g.label, rows: tagged.filter((r) => r.g === g.key) })),
+  { label: en ? W.other : 'その他', rows: tagged.filter((r) => !r.g) },
 ].filter((s) => s.rows.length > 0);
 // 1グループに1銘柄ずつしかない旧い週は、見出しを立てると細切れになる
 const grouped = sections.length > 1 && sections.length < tagged.length;
 ---
 
 {rows.length > 0 && (
-  <section class="perf" aria-label="各資産の週次パフォーマンス">
+  <section class="perf" aria-label={en ? W.performance : '各資産の週次パフォーマンス'}>
     <div class="sec-head">
-      <h2>各資産の週次パフォーマンス</h2>
+      <h2>{en ? W.performance : '各資産の週次パフォーマンス'}</h2>
       <span class="spacer"></span>
-      <span class="num">{rows.length} 銘柄</span>
+      <span class="num">{en ? W.instruments(rows.length) : `${rows.length} 銘柄`}</span>
     </div>
     {(grouped ? sections : [{ label: '', rows: tagged }]).map((s) => (
       <div class="grp">
@@ -49,11 +52,15 @@ const grouped = sections.length > 1 && sections.length < tagged.length;
             <li>
               <span class="label">{r.label}</span>
               <span class:list={['value', (r.status === '未確認' || !r.value) && 'unk']}>
-                {r.status === '未確認' || !r.value ? '未確認' : r.value}
+                {r.status === '未確認' || !r.value ? (en ? W.unconfirmed : '未確認') : r.value}
               </span>
               <span class="right">
                 {r.change && r.status !== '未確認' && <span class:list={['change', r.dir]}>{r.change}</span>}
-                {r.status === '読み取り' && <span class="badge" title="取引中・集計途中の値で、終値ではない">読み取り</span>}
+                {r.status === '読み取り' && (
+                  <span class="badge" title={en ? W.readingTitle : '取引中・集計途中の値で、終値ではない'}>
+                    {en ? W.reading : '読み取り'}
+                  </span>
+                )}
               </span>
               {r.note && <span class="note">{r.note}</span>}
             </li>

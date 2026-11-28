@@ -517,6 +517,199 @@ def check_weekly(p, seen_week):
         warn(p, "draft: true です。公開されません")
 
 
+# ── 週次まとめの英語版（/en/weekly/）────────────────────────
+# 日本語の号が正本。訳すのは散文だけで、値・変化率・dir・status・key・日付・kind は同じでなければならない。
+WEEKLY_EN = Path("src/content/weekly-en")
+WEEKLY_EN_SECTIONS = [
+    "## The core theme of the week",
+    "## Key events, reviewed",
+    "## How money moved this week",
+    "## Looking to next week",
+]
+# 日本語が残っているかの判定（ひらがな・カタカナ・漢字）
+JA_CHARS = re.compile(r"[ぁ-んァ-ヶ一-龥]")
+# 数字の抜き出し。桁区切りと小数を1つの語として取る。時刻（17:00）は数量ではないので先に落とす
+NUM = re.compile(r"\d[\d,]*(?:\.\d+)?")
+TIME = re.compile(r"\d{1,2}:\d{2}")
+
+
+def nums(s):
+    """文字列に出てくる数値の集合。符号・桁区切り・時刻は落とす"""
+    s = TIME.sub(" ", str(s or ""))
+    return {m.group(0).replace(",", "").rstrip(".") for m in NUM.finditer(s)}
+
+
+def _same_scale(x, pool):
+    """x が pool のどれかを10のべき乗で割った／掛けた値か。万・億・兆 と thousand/billion の言い換えを許す"""
+    try:
+        v = float(x)
+    except ValueError:
+        return False
+    for y in pool:
+        try:
+            w = float(y)
+        except ValueError:
+            continue
+        if w == 0 or v == 0:
+            continue
+        for e in range(1, 5):
+            if abs(v - w * 10 ** e) < 1e-9 or abs(v - w / 10 ** e) < 1e-9:
+                return True
+    return False
+
+
+def check_num_subset(p, where, ja_text, en_text):
+    """英語の散文に、日本語に無い数値が入っていないか。数値の作り込みを機械で止める"""
+    pool = nums(ja_text)
+    extra = {x for x in nums(en_text) - pool if not _same_scale(x, pool)}
+    if extra:
+        err(p, f"{where}：日本語版に無い数値があります（{'、'.join(sorted(extra))}）。"
+               f"数値は日本語版と同じものだけを書く")
+
+
+def check_translated(p, where, ja_text, en_text, required=True):
+    """訳す欄が、空・日本語のまま・原文のコピーになっていないか"""
+    en_text = str(en_text or "").strip()
+    ja_text = str(ja_text or "").strip()
+    if not ja_text:
+        return
+    if not en_text:
+        if required:
+            err(p, f"{where} が空です")
+        return
+    if JA_CHARS.search(en_text):
+        err(p, f"{where} に日本語が残っています")
+    # 「USD/JPY」「S&P 500」のように元が英数字だけの欄は、同じでよい（訳しようがない）
+    elif en_text == ja_text and JA_CHARS.search(ja_text):
+        err(p, f"{where} が日本語版と同じです")
+    check_num_subset(p, where, ja_text, en_text)
+
+
+def check_weekly_en(p):
+    """週次まとめの英語版。日本語の原本と突き合わせ、訳してよい欄だけが違うことを確かめる"""
+    text = p.read_text(encoding="utf-8")
+    fm = world_yaml(p, text)   # YAML として読むだけ。world 専用の検査はしない
+    if fm is None:
+        return
+    body = "---".join(text.split("---")[2:])
+    ja_path = WEEKLY / p.name
+    if not ja_path.exists():
+        err(p, f"日本語の原本 {ja_path} がありません。英語版だけの号は作らない")
+        return
+    ja = world_yaml(ja_path, ja_path.read_text(encoding="utf-8")) or {}
+
+    # ── 写すだけの欄 ────────────────────────
+    for k in ("year", "week", "start", "end"):
+        if fm.get(k) != ja.get(k):
+            err(p, f"{k} が日本語版と違います（{fm.get(k)} / {ja.get(k)}）")
+
+    # ── 訳す欄（単純な文字列）──────────────
+    for k, minlen in (("title", 20), ("deck", 60), ("description", 80), ("bias", 20)):
+        check_translated(p, k, ja.get(k), fm.get(k), required=bool(ja.get(k)))
+        v = str(fm.get(k) or "").strip()
+        if v and len(v) < minlen:
+            warn(p, f"{k} が{len(v)}字と短すぎます（目安{minlen}字以上）")
+
+    jp, ep = ja.get("points") or [], fm.get("points") or []
+    if len(jp) != len(ep):
+        err(p, f"points の件数が日本語版と違います（{len(ep)} / {len(jp)}）")
+    for i, (a, b) in enumerate(zip(jp, ep), 1):
+        check_translated(p, f"points[{i}]", a, b)
+
+    # ── performance。値は完全一致、label と note は訳す ──
+    jrows, erows = ja.get("performance") or [], fm.get("performance") or []
+    if len(jrows) != len(erows):
+        err(p, f"performance の件数が日本語版と違います（{len(erows)} / {len(jrows)}）")
+    for i, (a, b) in enumerate(zip(jrows, erows)):
+        tag = f"performance[{i + 1}]"
+        for k in ("key", "group", "value", "change", "dir"):
+            if (a.get(k) or "") != (b.get(k) or ""):
+                err(p, f"{tag} の {k} が日本語版と違います（{b.get(k)} / {a.get(k)}）。値は訳で変えない")
+        if (a.get("status") or "確定") != (b.get("status") or "確定"):
+            err(p, f"{tag} の status が日本語版と違います")
+        check_translated(p, f"{tag} の label", a.get("label"), b.get("label"))
+        check_translated(p, f"{tag} の note", a.get("note"), b.get("note"), required=False)
+
+    jn, en_ = ja.get("ratioNotes") or {}, fm.get("ratioNotes") or {}
+    if set(jn) != set(en_):
+        err(p, "ratioNotes のキーが日本語版と違います")
+    for k in jn:
+        check_translated(p, f"ratioNotes.{k}", jn.get(k), en_.get(k))
+
+    jf, ef = ja.get("flows") or [], fm.get("flows") or []
+    if len(jf) != len(ef):
+        err(p, f"flows の件数が日本語版と違います（{len(ef)} / {len(jf)}）")
+    for i, (a, b) in enumerate(zip(jf, ef), 1):
+        # flows の値には「トン」のような単位が付く。単位は訳してよいので、数値だけを突き合わせる
+        for k in ("value", "change"):
+            if nums(a.get(k)) != nums(b.get(k)):
+                err(p, f"flows[{i}] の {k} の数値が日本語版と違います（{b.get(k)} / {a.get(k)}）")
+        for k in ("dir", "status", "source"):
+            if (a.get(k) or "") != (b.get(k) or ""):
+                err(p, f"flows[{i}] の {k} が日本語版と違います。出典は訳で変えない")
+        check_translated(p, f"flows[{i}] の label", a.get("label"), b.get("label"))
+        check_translated(p, f"flows[{i}] の note", a.get("note"), b.get("note"), required=False)
+
+    js, es = ja.get("schedule") or [], fm.get("schedule") or []
+    if len(js) != len(es):
+        err(p, f"schedule の日数が日本語版と違います（{len(es)} / {len(js)}）")
+    for a, b in zip(js, es):
+        if a.get("date") != b.get("date"):
+            err(p, f"schedule の日付が日本語版と違います（{b.get('date')} / {a.get('date')}）")
+        ai, bi = a.get("items") or [], b.get("items") or []
+        if len(ai) != len(bi):
+            err(p, f"schedule {a.get('date')} の件数が日本語版と違います")
+        for x, y in zip(ai, bi):
+            if bool(x.get("key")) != bool(y.get("key")):
+                err(p, f"schedule {a.get('date')} の key が日本語版と違います")
+            check_translated(p, f"schedule {a.get('date')} の label", x.get("label"), y.get("label"))
+
+    def check_levels(tag, jl, el):
+        if len(jl) != len(el):
+            err(p, f"{tag} の件数が日本語版と違います（{len(el)} / {len(jl)}）")
+        for i, (a, b) in enumerate(zip(jl, el), 1):
+            for k in ("kind", "value"):
+                if (a.get(k) or "") != (b.get(k) or ""):
+                    err(p, f"{tag}[{i}] の {k} が日本語版と違います。水準は訳で変えない")
+            check_translated(p, f"{tag}[{i}] の note", a.get("note"), b.get("note"), required=False)
+
+    check_levels("levels", ja.get("levels") or [], fm.get("levels") or [])
+    jm, em = ja.get("moreLevels") or [], fm.get("moreLevels") or []
+    if len(jm) != len(em):
+        err(p, f"moreLevels の件数が日本語版と違います（{len(em)} / {len(jm)}）")
+    for i, (a, b) in enumerate(zip(jm, em), 1):
+        check_translated(p, f"moreLevels[{i}] の asset", a.get("asset"), b.get("asset"))
+        check_levels(f"moreLevels[{i}] の levels", a.get("levels") or [], b.get("levels") or [])
+
+    jsc, esc = ja.get("scenarios") or [], fm.get("scenarios") or []
+    if [x.get("kind") for x in jsc] != [x.get("kind") for x in esc]:
+        err(p, "scenarios の kind と並びが日本語版と違います")
+    for a, b in zip(jsc, esc):
+        for k in ("trigger", "chain", "target"):
+            check_translated(p, f"scenarios（{a.get('kind')}）の {k}", a.get(k), b.get(k), required=(k == "trigger"))
+
+    # ── 本文 ──────────────────────────────
+    missing = [s for s in WEEKLY_EN_SECTIONS if s not in body]
+    if missing:
+        err(p, f"必須の節がありません: {' / '.join(s.strip('# ') for s in missing)}")
+    for jaheading in ("## 週の核心テーマ", "## 今週の資金フロー構造", "## 来週の備え", "情報元："):
+        if jaheading in body:
+            err(p, f"本文に日本語の見出しが残っています（{jaheading}）")
+    if "Sources:" not in body:
+        err(p, "本文に「Sources:」がありません（リンク付きリスト。アコーディオンになる）")
+    if re.search(r"^\s*https?://\S+\s*$", body, re.M):
+        err(p, "素のURLがあります。[媒体名（内容・日付）](URL) の形式にしてください")
+    if "- []()" in body:
+        err(p, "Sources のリンクが未記入です")
+    if re.search(r"\b(buy|sell) (recommend|now)\b", body, re.I):
+        err(p, "売買の推奨に読める表現があります")
+
+    if fm.get("draft") is True:
+        warn(p, "draft: true です。公開されません")
+    if fm.get("draft") is False and ja.get("draft") is True:
+        err(p, "日本語版が下書きなのに英語版が公開になっています")
+
+
 WORLD_REGIONS = ["na", "eu", "ru", "cn", "in", "me"]
 WORLD_TOPICS = ["gold", "dollar", "rates"]
 WORLD_STANCES = ("bull", "neutral", "bear", "split", "unknown")
@@ -817,35 +1010,38 @@ def main():
     if not REPORTS.is_dir():
         sys.exit("src/content/reports が見つかりません。リポジトリ直下で実行してください。")
 
-    daily, weekly, world, world_en = [], [], [], []
+    daily, weekly, weekly_en, world, world_en = [], [], [], [], []
     if len(sys.argv) > 1:
         arg = sys.argv[1]
-        dp, wp, xp, ep = REPORTS / f"{arg}.md", WEEKLY / f"{arg}.md", WORLD / f"{arg}.md", WORLD_EN / f"{arg}.md"
+        dp = REPORTS / f"{arg}.md"
+        wp, wep = WEEKLY / f"{arg}.md", WEEKLY_EN / f"{arg}.md"
+        xp, ep = WORLD / f"{arg}.md", WORLD_EN / f"{arg}.md"
         if dp.exists():
             daily = [dp]
         # 週次と世界の定点（と英語版）はスラッグが同じ（同じ週）。あるものをすべて検査する
         if wp.exists():
             weekly = [wp]
+        if wep.exists():
+            weekly_en = [wep]
         if xp.exists():
             world = [xp]
         if ep.exists():
             world_en = [ep]
-        if not (daily or weekly or world):
+        if not (daily or weekly or weekly_en or world or world_en):
             sys.exit(f"{arg} は日次にも週次にも世界の定点にも見つかりません")
     else:
         daily = [p for p in sorted(REPORTS.glob("*.md")) if not p.name.startswith("_")]
-        if WEEKLY.is_dir():
-            weekly = [p for p in sorted(WEEKLY.glob("*.md")) if not p.name.startswith("_")]
-        if WORLD.is_dir():
-            world = [p for p in sorted(WORLD.glob("*.md")) if not p.name.startswith("_")]
-        if WORLD_EN.is_dir():
-            world_en = [p for p in sorted(WORLD_EN.glob("*.md")) if not p.name.startswith("_")]
+        for d, box in ((WEEKLY, weekly), (WEEKLY_EN, weekly_en), (WORLD, world), (WORLD_EN, world_en)):
+            if d.is_dir():
+                box.extend(p for p in sorted(d.glob("*.md")) if not p.name.startswith("_"))
 
     seen_no, seen_week, seen_world = {}, {}, {}
     for p in daily:
         check(p, seen_no)
     for p in weekly:
         check_weekly(p, seen_week)
+    for p in weekly_en:
+        check_weekly_en(p)
     for p in world:
         check_world(p, seen_world)
     for p in world_en:
@@ -856,7 +1052,8 @@ def main():
     for e in errors:
         print(f"  エラー {e}")
 
-    print(f"\n日次{len(daily)}件・週次{len(weekly)}件・世界の定点{len(world)}件（英語版{len(world_en)}件）を検査："
+    print(f"\n日次{len(daily)}件・週次{len(weekly)}件（英語版{len(weekly_en)}件）・"
+          f"世界の定点{len(world)}件（英語版{len(world_en)}件）を検査："
           f"エラー {len(errors)} / 警告 {len(warns)}")
     sys.exit(1 if errors else 0)
 

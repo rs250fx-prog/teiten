@@ -1,16 +1,19 @@
 ---
 /**
- * 英語版のトップ。英語版は「世界の定点」とサイト紹介だけなので、
- * 最新の World Windows と About への導線を置く短いページにする。
- * 日次・週次は日本語のみ（その旨を書く）。
+ * 英語版のトップ。英語版は「週次まとめ」「世界の定点」とサイト紹介だけなので、
+ * それぞれの最新と About への導線を置く短いページにする。
+ * 日次は日本語のみ（その旨を書く）。
  */
 import Base from '../../layouts/Base.astro';
 import WorldCard from '../../components/WorldCard.astro';
-import { listWorldEn } from '../../lib/content';
-import { EN } from '../../i18n';
+import WeeklyCard from '../../components/WeeklyCard.astro';
+import { listWorldEn, listWeeklyEn } from '../../lib/content';
+import { EN, EN_WEEKLY as W } from '../../i18n';
 
 const world = await listWorldEn();
 const latest = world.slice(0, 3);
+const weekly = await listWeeklyEn();
+const latestWeekly = weekly.slice(0, 3);
 ---
 
 <Base lang="en" alternate="/" description={EN.siteDescription} isHome>
@@ -20,6 +23,21 @@ const latest = world.slice(0, 3);
       <p>{EN.en_index.lead}</p>
       <p class="ja">{EN.en_index.jaNote} <a href="/" hreflang="ja">{EN.footer.japanese} →</a></p>
     </header>
+
+    <section class="sec" aria-label={W.title}>
+      <div class="sec-head">
+        <h2>{W.title}</h2>
+        <span class="spacer"></span>
+        <a href="/en/weekly/">{EN.en_index.all}</a>
+      </div>
+      {latestWeekly.length > 0 ? (
+        <div class="wk">
+          {latestWeekly.map((entry) => <WeeklyCard entry={entry} lang="en" />)}
+        </div>
+      ) : (
+        <p class="empty">{W.empty}</p>
+      )}
+    </section>
 
     <section class="sec" aria-label={EN.en_index.latest}>
       <div class="sec-head">

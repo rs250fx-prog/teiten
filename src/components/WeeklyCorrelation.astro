@@ -7,29 +7,36 @@
  * 数値は src/data/weekly/<slug>.json（tools/fetch-weekly.py）から描く。
  */
 import { fixed, type WeeklyData } from '../lib/weekly';
+import { EN_WEEKLY as W, seriesLabel, type Lang } from '../i18n';
 
 interface Props {
   data?: WeeklyData['correlation'];
+  lang?: Lang;
 }
-const { data } = Astro.props;
+const { data, lang = 'ja' } = Astro.props;
+const en = lang === 'en';
 const pairs = (data?.pairs ?? []).filter((p) => p.r != null);
 
-const word = (r: number) =>
-  Math.abs(r) < 0.2 ? 'ほぼ無関係' : Math.abs(r) < 0.5 ? (r > 0 ? '弱い順相関' : '弱い逆相関') : r > 0 ? '順相関' : '逆相関';
+const word = (r: number) => {
+  const w = W.corrWords;
+  if (Math.abs(r) < 0.2) return en ? w.none : 'ほぼ無関係';
+  if (Math.abs(r) < 0.5) return r > 0 ? (en ? w.weakPos : '弱い順相関') : en ? w.weakNeg : '弱い逆相関';
+  return r > 0 ? (en ? w.pos : '順相関') : en ? w.neg : '逆相関';
+};
 ---
 
 {pairs.length > 0 && (
-  <section class="corr" aria-label="週次相関">
+  <section class="corr" aria-label={en ? W.correlation : '週次相関'}>
     <div class="sec-head">
-      <h2>週次相関</h2>
+      <h2>{en ? W.correlation : '週次相関'}</h2>
       <span class="spacer"></span>
-      <span class="num">直近{data!.window}週</span>
+      <span class="num">{en ? W.lastWeeks(data!.window!) : `直近${data!.window}週`}</span>
     </div>
     <ul>
       {pairs.map((p) => (
         <li>
-          <span class="k">金 × {p.label}</span>
-          <span class="meter" role="img" aria-label={`相関係数 ${fixed(p.r!, 2)}`}>
+          <span class="k">{en ? 'Gold' : '金'} × {seriesLabel(p.label, lang)}</span>
+          <span class="meter" role="img" aria-label={`${en ? 'Correlation' : '相関係数'} ${fixed(p.r!, 2)}`}>
             <span class="mid"></span>
             <span
               class:list={['fill', p.r! >= 0 ? 'pos' : 'neg']}
@@ -42,8 +49,9 @@ const word = (r: number) =>
       ))}
     </ul>
     <p class="src">
-      {data!.base}と、各指標の週間変化（実質金利は bp、ほかは変化率）の相関係数。−1 は逆向き、+1 は同じ向きにそろって動いたことを示す。
-      8週は短く、1週の大きな動きで符号が変わる。因果関係は示さない。{data!.source}
+      {en
+        ? W.corrSrc(seriesLabel(data!.base!, lang), seriesLabel(data!.source!, lang))
+        : `${data!.base}と、各指標の週間変化（実質金利は bp、ほかは変化率）の相関係数。−1 は逆向き、+1 は同じ向きにそろって動いたことを示す。8週は短く、1週の大きな動きで符号が変わる。因果関係は示さない。${data!.source}`}
     </p>
   </section>
 )}

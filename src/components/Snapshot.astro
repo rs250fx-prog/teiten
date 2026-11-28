@@ -5,6 +5,8 @@
  * 6枠を想定しているが、件数が変わっても崩れないよう
  * グリッドは列数固定 + 罫線の打ち消しで組む。
  */
+import { EN_WEEKLY, type Lang } from '../i18n';
+
 interface Quote {
   label: string;
   value: string;
@@ -24,12 +26,14 @@ interface Props {
   cols?: 4 | 6;
   /** list の見出し。週次では「週の数値」のように変える */
   heading?: string;
+  lang?: Lang;
 }
-const { quotes, note, variant = 'board', cols = 6, heading = '数値指標' } = Astro.props;
+const { quotes, note, variant = 'board', cols = 6, lang = 'ja', heading = lang === 'en' ? EN_WEEKLY.snapshot : '数値指標' } = Astro.props;
+const snapLabel = lang === 'en' ? EN_WEEKLY.snapshot : 'マーケット・スナップショット';
 ---
 
 {quotes.length > 0 && variant === 'board' && (
-  <section class="snap-wrap" aria-label="マーケット・スナップショット">
+  <section class="snap-wrap" aria-label={snapLabel}>
     <div class:list={['snap', cols === 4 && 'c4']}>
       {quotes.map((q) => (
         <div class="sc">
@@ -44,7 +48,7 @@ const { quotes, note, variant = 'board', cols = 6, heading = '数値指標' } = 
 )}
 
 {quotes.length > 0 && variant === 'list' && (
-  <section class="snap-list" aria-label="マーケット・スナップショット">
+  <section class="snap-list" aria-label={snapLabel}>
     <div class="sl-h">{heading}</div>
     <ul>
       {quotes.map((q) => (

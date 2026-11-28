@@ -9,13 +9,19 @@
  * frontmatter の ratioNotes は一言の読みだけを持つ。
  */
 import { fixed, signed, dirOf, type Ratio } from '../lib/weekly';
+import { EN_WEEKLY as T, EN_RATIOS, type Lang } from '../i18n';
 
 interface Props {
   ratios: Ratio[];
   notes: Record<string, string>;
+  lang?: Lang;
 }
-const { ratios, notes } = Astro.props;
+const { ratios, notes, lang = 'ja' } = Astro.props;
+const en = lang === 'en';
 const shown = ratios.filter((r) => r.value != null);
+/** レシオの名前と説明。JSON は日本語なので、英語版は key で引き直す */
+const rLabel = (r: Ratio) => (en ? EN_RATIOS[r.key]?.label ?? r.label : r.label);
+const rGloss = (r: Ratio) => (en ? EN_RATIOS[r.key]?.gloss ?? r.gloss : r.gloss);
 
 const W = 260;
 const H = 56;
@@ -41,11 +47,15 @@ const md = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10
 ---
 
 {shown.length > 0 && (
-  <section class="ratios" aria-label="週のレシオ">
+  <section class="ratios" aria-label={en ? T.ratios : '週のレシオ'}>
     <div class="sec-head">
-      <h2>週のレシオ</h2>
+      <h2>{en ? T.ratios : '週のレシオ'}</h2>
       <span class="spacer"></span>
-      <span class="num">直近{Math.max(...shown.map((r) => r.history.length))}週</span>
+      <span class="num">
+        {en
+          ? T.lastWeeks(Math.max(...shown.map((r) => r.history.length)))
+          : `直近${Math.max(...shown.map((r) => r.history.length))}週`}
+      </span>
     </div>
     <div class="cards">
       {shown.map((r) => {
@@ -54,12 +64,14 @@ const md = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10
         return (
           <article class="card">
             <div class="top">
-              <h3>{r.label}</h3>
+              <h3>{rLabel(r)}</h3>
               <span class="v">{fixed(r.value!, r.digits)}</span>
               {ch != null && <span class:list={['c', dirOf(ch)]}>{signed(ch, r.digits)}</span>}
             </div>
             {s && (
-              <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${r.label}の直近${s.n}週の推移。最小${fixed(s.lo, r.digits)}、最大${fixed(s.hi, r.digits)}`}>
+              <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={en
+                ? `${rLabel(r)} over the last ${s.n} weeks. Low ${fixed(s.lo, r.digits)}, high ${fixed(s.hi, r.digits)}`
+                : `${r.label}の直近${s.n}週の推移。最小${fixed(s.lo, r.digits)}、最大${fixed(s.hi, r.digits)}`}>
                 <path d={s.d} fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linejoin="round" />
                 <circle cx={s.last[0]} cy={s.last[1]} r="3" fill="var(--accent)" />
               </svg>
@@ -67,19 +79,20 @@ const md = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10
             {s && (
               <div class="axis">
                 <span>{md(r.history[0].week_end)}</span>
-                <span>幅 {fixed(s.lo, r.digits)}〜{fixed(s.hi, r.digits)}</span>
+                <span>{en ? T.range : '幅'} {fixed(s.lo, r.digits)}{en ? '–' : '〜'}{fixed(s.hi, r.digits)}</span>
                 <span>{md(r.history[r.history.length - 1].week_end)}</span>
               </div>
             )}
             {notes[r.key] && <p class="read">{notes[r.key]}</p>}
-            <p class="gloss">{r.gloss}</p>
+            <p class="gloss">{rGloss(r)}</p>
           </article>
         );
       })}
     </div>
     <p class="src">
-      いずれも COMEX 金先物（GC=F）と、銀（SI=F）・WTI原油（CL=F）・銅（HG=F、ドル/ポンド）の期近先物の比。各週の最後の取引日の値（Yahoo Finance）から算出。
-      期近の限月が替わる週は、比が限月をまたぐ。
+      {en
+        ? T.ratiosSrc
+        : 'いずれも COMEX 金先物（GC=F）と、銀（SI=F）・WTI原油（CL=F）・銅（HG=F、ドル/ポンド）の期近先物の比。各週の最後の取引日の値（Yahoo Finance）から算出。期近の限月が替わる週は、比が限月をまたぐ。'}
     </p>
   </section>
 )}

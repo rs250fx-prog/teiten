@@ -1,19 +1,23 @@
 ---
-import type { Weekly } from '../lib/content';
+import type { Weekly, WeeklyEn } from '../lib/content';
 import { monthDay } from '../lib/content';
+import { EN_WEEKLY as W, EN, type Lang } from '../i18n';
 
 interface Props {
-  entry: Weekly;
+  entry: Weekly | WeeklyEn;
+  lang?: Lang;
 }
-const { entry } = Astro.props;
+const { entry, lang = 'ja' } = Astro.props;
+const en = lang === 'en';
 const { week, start, end, title, deck } = entry.data;
+const base = en ? '/en/weekly/' : '/weekly/';
 ---
 
-<a class="wc" href={`/weekly/${entry.id}/`}>
-  <div class="w">WEEK {week} — {monthDay(start)} / {monthDay(end)}</div>
+<a class="wc" href={`${base}${entry.id}/`}>
+  <div class="w">{en ? W.week : 'WEEK'} {week} — {monthDay(start)} / {monthDay(end)}</div>
   <h3>{title}</h3>
   <p>{deck}</p>
-  <span class="go">読む →</span>
+  <span class="go">{en ? EN.world.read : '読む →'}</span>
 </a>
 
 <style>

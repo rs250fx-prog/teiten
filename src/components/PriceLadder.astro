@@ -8,6 +8,8 @@
  * 定点観測の中核。同じ水準を毎日追うことで、どこが効いてどこが抜けたかが
  * 時系列で見える。本文で散文にすると比較できない。
  */
+import { EN_WEEKLY as W, type Lang } from '../i18n';
+
 interface Level {
   kind: 'resistance' | 'current' | 'support';
   value: string;
@@ -17,14 +19,16 @@ interface Props {
   levels: Level[];
   /** 見出し。銘柄が複数になったら「ゴールド」などを指定する */
   label?: string;
+  lang?: Lang;
 }
-const { levels, label = 'テクニカル・レベル' } = Astro.props;
+const { levels, lang = 'ja', label = lang === 'en' ? W.ladder : 'テクニカル・レベル' } = Astro.props;
 
-const KIND = {
+const KIND_JA = {
   resistance: 'レジスタンス',
   current: '現在値',
   support: 'サポート',
 } as const;
+const KIND = lang === 'en' ? W.kind : KIND_JA;
 ---
 
 {levels.length > 0 && (

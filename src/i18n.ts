@@ -17,6 +17,7 @@ export const EN = {
   home: 'Home',
   nav: [
     { href: '/en/', label: 'Home' },
+    { href: '/en/weekly/', label: 'Weekly Summary' },
     { href: '/en/world/', label: 'World Windows' },
     { href: '/en/about/', label: 'About' },
   ],

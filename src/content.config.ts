@@ -144,9 +144,7 @@ const reports = defineCollection({
  * 週次まとめ。
  * ファイル名 = スラッグ（例: src/content/weekly/2026-w38.md）
  */
-const weekly = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/content/weekly' }),
-  schema: z.object({
+const weeklySchema = z.object({
     /** ISO週番号 */
     week: z.number(),
     year: z.number(),
@@ -328,7 +326,21 @@ const weekly = defineCollection({
     draft: z.boolean().default(false),
     unlisted: z.boolean().default(false),
     access: z.enum(['public', 'members']).default('public'),
-  }),
+});
+
+const weekly = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/weekly' }),
+  schema: weeklySchema,
+});
+
+/**
+ * 週次まとめの英語版（/en/weekly/）。日本語と同じスラッグ・同じ形で、散文だけを訳す。
+ * 値・変化率・dir・status・key は日本語版と同じでなければならない（check-report.py が突き合わせる）。
+ * 英語版だけの号は作らない。
+ */
+const weeklyEn = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/weekly-en' }),
+  schema: weeklySchema,
 });
 
 /**
@@ -442,4 +454,4 @@ const worldEn = defineCollection({
   schema: worldSchema,
 });
 
-export const collections = { reports, weekly, world, 'world-en': worldEn };
+export const collections = { reports, weekly, 'weekly-en': weeklyEn, world, 'world-en': worldEn };

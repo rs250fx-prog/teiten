@@ -11,6 +11,7 @@
  * 何が取れなかったかだけを末尾に書く。
  */
 import { fixed, signed, dirOf, type WeeklyData } from '../lib/weekly';
+import { EN_WEEKLY as W, seriesLabel, type Lang } from '../i18n';
 
 interface Flow {
   label: string;
@@ -24,16 +25,20 @@ interface Flow {
 interface Props {
   data?: WeeklyData;
   flows: Flow[];
+  lang?: Lang;
 }
-const { data, flows } = Astro.props;
+const { data, flows, lang = 'ja' } = Astro.props;
+const en = lang === 'en';
 
 const cot = (data?.cot ?? []).filter((c) => c.history.length > 0);
 const etf = data?.btc_etf;
 const fw = data?.fedwatch;
 const missing = [
-  ...(data?.cot ?? []).filter((c) => c.history.length === 0).map((c) => `建玉（${c.label}）`),
-  ...(data && etf?.total == null ? ['BTC現物ETFのフロー'] : []),
-  ...(data && fw && fw.meetings.length === 0 ? ['FOMC の織り込み'] : []),
+  ...(data?.cot ?? [])
+    .filter((c) => c.history.length === 0)
+    .map((c) => (en ? `positioning (${seriesLabel(c.label, lang)})` : `建玉（${c.label}）`)),
+  ...(data && etf?.total == null ? [en ? 'spot bitcoin ETF flows' : 'BTC現物ETFのフロー'] : []),
+  ...(data && fw && fw.meetings.length === 0 ? [en ? 'what the market prices for the FOMC' : 'FOMC の織り込み'] : []),
   ...flows.filter((f) => f.status === '未確認').map((f) => f.label),
 ];
 const manual = flows.filter((f) => f.status !== '未確認');
@@ -44,34 +49,39 @@ const maxAbs = (xs: number[]) => Math.max(1, ...xs.map(Math.abs));
 ---
 
 {show && (
-  <section class="flows" aria-label="ポジションとフロー">
+  <section class="flows" aria-label={en ? W.flows : 'ポジションとフロー'}>
     <div class="sec-head">
-      <h2>ポジションとフロー</h2>
+      <h2>{en ? W.flows : 'ポジションとフロー'}</h2>
     </div>
 
     {fw && fw.meetings.length > 0 && (
       <div class="blk">
-        <h3>FOMC の織り込み</h3>
+        <h3>{en ? W.fomc : 'FOMC の織り込み'}</h3>
         <ul class="fw">
           {fw.meetings.map((m) => (
             <li>
-              <span class="k">{md(m.meeting)} の会合</span>
+              <span class="k">{md(m.meeting)} {en ? W.meeting : 'の会合'}</span>
               <span class="v">{fixed(m.post, 2)}%</span>
               <span class:list={['c', dirOf(m.move_bp)]}>{signed(m.move_bp, 1, 'bp')}</span>
-              <span class="sub">0.25%の{m.move_bp >= 0 ? '利上げ' : '利下げ'} {fixed(Math.abs(m.hikes), 2)} 回分</span>
+              <span class="sub">
+                {en
+                  ? W.hikesOf(m.move_bp >= 0 ? 'hike' : 'cut', fixed(Math.abs(m.hikes), 2))
+                  : `0.25%の${m.move_bp >= 0 ? '利上げ' : '利下げ'} ${fixed(Math.abs(m.hikes), 2)} 回分`}
+              </span>
             </li>
           ))}
         </ul>
         <p class="src">
-          FF金利先物（CBOT）から算出した会合後の政策金利の見込み。起点は実効FF金利 {fixed(fw.effr!, 2)}%（{md(fw.effr_asof!)}、FRED EFFR）。
-          CME FedWatch と同じ考え方の算出値で、FedWatch の数値そのものではない。
+          {en
+            ? W.fomcSrc(fixed(fw.effr!, 2), md(fw.effr_asof!))
+            : `FF金利先物（CBOT）から算出した会合後の政策金利の見込み。起点は実効FF金利 ${fixed(fw.effr!, 2)}%（${md(fw.effr_asof!)}、FRED EFFR）。CME FedWatch と同じ考え方の算出値で、FedWatch の数値そのものではない。`}
         </p>
       </div>
     )}
 
     {cot.length > 0 && (
       <div class="blk">
-        <h3>CFTC 建玉（ネットの投機ポジション、4週）</h3>
+        <h3>{en ? W.cot : 'CFTC 建玉（ネットの投機ポジション、4週）'}</h3>
         <ul class="cot">
           {cot.map((c) => {
             const m = maxAbs(c.history.map((h) => h.net));
@@ -80,11 +90,17 @@ const maxAbs = (xs: number[]) => Math.max(1, ...xs.map(Math.abs));
             return (
               <li>
                 <div class="cot-h">
-                  <span class="k">{c.label}<small>{c.who}</small></span>
+                  <span class="k">{seriesLabel(c.label, lang)}<small>{seriesLabel(c.who, lang)}</small></span>
                   <span class="v">{signed(last.net, 0)}</span>
-                  {prev && <span class:list={['c', dirOf(last.net - prev.net)]}>前週比 {signed(last.net - prev.net, 0)}</span>}
+                  {prev && (
+                    <span class:list={['c', dirOf(last.net - prev.net)]}>
+                      {en ? W.wow : '前週比'} {signed(last.net - prev.net, 0)}
+                    </span>
+                  )}
                 </div>
-                <div class="bars" role="img" aria-label={`${c.label}のネットポジション：${c.history.map((h) => `${md(h.date)} ${signed(h.net, 0)}`).join('、')}`}>
+                <div class="bars" role="img" aria-label={en
+                  ? `Net position in ${seriesLabel(c.label, lang)}: ${c.history.map((h) => `${md(h.date)} ${signed(h.net, 0)}`).join(', ')}`
+                  : `${c.label}のネットポジション：${c.history.map((h) => `${md(h.date)} ${signed(h.net, 0)}`).join('、')}`}>
                   {c.history.map((h) => (
                     <span class="bar-w">
                       <span class:list={['bar', h.net >= 0 ? 'pos' : 'neg']} style={`--w:${(Math.abs(h.net) / m) * 100}%`}></span>
@@ -96,21 +112,23 @@ const maxAbs = (xs: number[]) => Math.max(1, ...xs.map(Math.abs));
             );
           })}
         </ul>
-        <p class="src">CFTC Commitments of Traders。火曜時点の建玉で、金曜に公表。金・銀・原油はマネージド・マネー、円はレバレッジド・ファンド。単位は枚。</p>
+        <p class="src">{en ? W.cotSrc : 'CFTC Commitments of Traders。火曜時点の建玉で、金曜に公表。金・銀・原油はマネージド・マネー、円はレバレッジド・ファンド。単位は枚。'}</p>
       </div>
     )}
 
     {(etf?.total != null || manual.length > 0) && (
       <div class="blk">
-        <h3>ETF の資金フロー</h3>
+        <h3>{en ? W.etf : 'ETF の資金フロー'}</h3>
         <ul class="etf">
           {etf?.total != null && (
             <li>
-              <span class="k">BTC現物ETF（米国・合計）</span>
-              <span class:list={['v', dirOf(etf.total)]}>{signed(etf.total, 1)}百万ドル</span>
-              {etf.status === '読み取り' && <span class="badge">読み取り</span>}
+              <span class="k">{en ? W.btcEtf : 'BTC現物ETF（米国・合計）'}</span>
+              <span class:list={['v', dirOf(etf.total)]}>
+                {en ? `$${signed(etf.total, 1)}${W.millionUsd}` : `${signed(etf.total, 1)}百万ドル`}
+              </span>
+              {etf.status === '読み取り' && <span class="badge">{en ? W.reading : '読み取り'}</span>}
               <span class="sub">
-                {etf.days.map((d) => `${md(d.date)} ${d.flow == null ? '未集計' : signed(d.flow, 1)}`).join(' / ')}
+                {etf.days.map((d) => `${md(d.date)} ${d.flow == null ? (en ? W.notTallied : '未集計') : signed(d.flow, 1)}`).join(' / ')}
                 {etf.note && `（${etf.note}）`}　Farside Investors
               </span>
             </li>
@@ -120,7 +138,7 @@ const maxAbs = (xs: number[]) => Math.max(1, ...xs.map(Math.abs));
               <span class="k">{f.label}</span>
               <span class="v">{f.value}</span>
               {f.change && <span class:list={['c', f.dir]}>{f.change}</span>}
-              {f.status === '読み取り' && <span class="badge">読み取り</span>}
+              {f.status === '読み取り' && <span class="badge">{en ? W.reading : '読み取り'}</span>}
               {(f.note || f.source) && <span class="sub">{f.note}{f.note && f.source && '　'}{f.source}</span>}
             </li>
           ))}
@@ -128,7 +146,9 @@ const maxAbs = (xs: number[]) => Math.max(1, ...xs.map(Math.abs));
       </div>
     )}
 
-    {missing.length > 0 && <p class="miss">未確認：{missing.join('、')}</p>}
+    {missing.length > 0 && (
+      <p class="miss">{en ? `${W.missing} ${missing.join(', ')}` : `未確認：${missing.join('、')}`}</p>
+    )}
   </section>
 )}
 

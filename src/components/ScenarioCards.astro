@@ -8,6 +8,8 @@
  * 色で強弱を付けない。緑赤は変化率の符号に予約してあり、
  * ここで使うと読者が符号として誤読する。区別は罫線と順序で示す。
  */
+import { EN_WEEKLY as W, type Lang } from '../i18n';
+
 interface Scenario {
   kind: 'bull' | 'base' | 'bear';
   trigger: string;
@@ -17,14 +19,23 @@ interface Scenario {
 interface Props {
   scenarios: Scenario[];
   label?: string;
+  lang?: Lang;
 }
-const { scenarios, label = '来週のシナリオ' } = Astro.props;
+const { scenarios, lang = 'ja', label = lang === 'en' ? W.scenarios : '来週のシナリオ' } = Astro.props;
+const en = lang === 'en';
 
-const KIND = {
+const KIND_JA = {
   bull: { name: 'Bull Case', ja: '上振れ' },
   base: { name: 'Base Case', ja: '基本' },
   bear: { name: 'Bear Case', ja: '下振れ' },
 } as const;
+const KIND = en
+  ? ({
+      bull: { name: W.caseName.bull, ja: W.caseJa.bull },
+      base: { name: W.caseName.base, ja: W.caseJa.base },
+      bear: { name: W.caseName.bear, ja: W.caseJa.bear },
+    } as const)
+  : KIND_JA;
 
 // 上振れ → 基本 → 下振れ の順に整える
 const ORDER = { bull: 0, base: 1, bear: 2 } as const;
@@ -36,7 +47,7 @@ const sorted = [...scenarios].sort((a, b) => ORDER[a.kind] - ORDER[b.kind]);
     <div class="sec-head">
       <h2>{label}</h2>
       <span class="spacer"></span>
-      <span class="num">{sorted.length} 案</span>
+      <span class="num">{en ? W.cases(sorted.length) : `${sorted.length} 案`}</span>
     </div>
     <div class="grid">
       {sorted.map((s) => (
@@ -49,7 +60,7 @@ const sorted = [...scenarios].sort((a, b) => ORDER[a.kind] - ORDER[b.kind]);
           {s.chain && <p class="chain">{s.chain}</p>}
           {s.target && (
             <p class="target">
-              <span class="target-h">価格目処</span>
+              <span class="target-h">{en ? W.target : '価格目処'}</span>
               <span class="num">{s.target}</span>
             </p>
           )}

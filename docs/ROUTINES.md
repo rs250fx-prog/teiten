@@ -246,8 +246,19 @@ Claude の cloud routines に登録しているプロンプトの原本。**ル�
        本文（`## Summary` 300 字以上と `Sources:` のリンク付きリスト）を英語で書く。数値は書かない。
        `python tools/review-world.py <YYYY-wNN> --write --en` で答え合わせの英語の note を書き、`python tools/check-report.py <YYYY-wNN>` を
        通す（日本語版と突き合わせる）。`draft: true` のまま同じコミットに add する
+7-E. 週次まとめの英語版を作る（`docs/SPEC.md` §5「週次の英語版」、SKILL.md の「週次の英語版」）。
+   (1) `python tools/new-weekly-en.py <YYYY-wNN>` で日本語の号から雛形 `src/content/weekly-en/<YYYY-wNN>.md` を作る。
+       訳す欄だけが空になり、元の日本語が行末に `# JA:` で残る
+   (2) 空の欄を英語で埋める。**訳すのは散文だけ**（title / deck / description / points / label と note / ratioNotes /
+       schedule の label / levels と moreLevels の note と asset / scenarios / bias）。
+       `key` / `value` / `change` / `dir` / `status` / `kind` / 日付 / `source` は**写したまま変えない**。
+       `status` の `読み取り`・`未確認` は列挙値なので日本語のまま置く
+   (3) 本文を訳す。節は `## The core theme of the week` / `## Key events, reviewed` / `## How money moved this week` /
+       `## Looking to next week` の4つ。出典は `Sources:` ＋リンク付きリスト。素の URL を並べない
+   (4) **数値は日本語版に出てくるものだけを書く。**`python tools/check-report.py <YYYY-wNN>` が突き合わせてエラーにする
+   (5) `draft: true` のまま同じコミットに add する
 8. commit して `main` に push する。`src/data/weekly/<YYYY-wNN>.json`、`note/<YYYY-wNN>.md`、`note/thumb_<YYYYwNN>.png`、`note/info_<YYYYwNN>.png`、
-   `src/content/world/<YYYY-wNN>.md`、`src/content/world-en/<YYYY-wNN>.md` も add に含める
+   `src/content/world/<YYYY-wNN>.md`、`src/content/world-en/<YYYY-wNN>.md`、`src/content/weekly-en/<YYYY-wNN>.md` も add に含める
 
 ## 書き方
 
@@ -293,6 +304,7 @@ Claude の cloud routines に登録しているプロンプトの原本。**ル�
 - note 用サムネイル（`note/thumb_<YYYYwNN>.png`）を書き出せたか。「注意」が出た行があればその内容
 - note 用の図解（`note/info_<YYYYwNN>.png`）を書き出せたか。公開後は `https://teiten.trade/info/<YYYY-wNN>.png`
 - 世界の定点（`src/content/world/<YYYY-wNN>.md`）を書いたか。未確認の窓と `unknown` の論点の数、主が読めず代替を使った窓、前週の答え合わせの件数（想定どおり／方向は合った／想定と違った）
+- 週次まとめの英語版（`src/content/weekly-en/<YYYY-wNN>.md`）を書いたか。検査のエラー・警告の件数
 - push したコミットのハッシュ
 
 **push に失敗した場合は、作成した記事の全文（frontmatter を含む）を報告に
@@ -323,6 +335,7 @@ Claude の cloud routines に登録しているプロンプトの原本。**ル�
 
 | 日付 | 内容 |
 |---|---|
+| 2026-11-29 | 週次の手順に 7-E（週次まとめの英語版 `src/content/weekly-en/`。`tools/new-weekly-en.py` の雛形から、訳す欄だけ英語で書く）を足し、完了時の報告にも足した。**登録済みのルーティンの文面にはまだ反映していない**（7-D と同じく、反映しないと英語版は止まる） |
 | 2026-11-13 | 7-D の (8) として英語版（`src/content/world-en/`。`tools/new-world.py --en` の雛形から、訳す欄だけ英語で書く）を足した。同じ日の下の行と同じく、**登録済みのルーティンの文面にはまだ反映していない** |
 | 2026-11-13 | **週次の手順に 7-D（「世界の定点」）を足した。**`tools/new-world.py` → 主媒体 8 本を読んで 6 窓の論調を書く → `tools/review-world.py --write` → 総括と情報元 → `check-report.py` → 週次本体と同じコミットで下書き push。完了時の報告には未確認の窓と `unknown` の論点の数を足す。**登録済みのルーティン（`trig_016QTPqnayVK9vrrR6HSGWNu`）の文面にはまだ反映していない。**クラウドの実行環境から主 6 本を fetch できるかを確かめてから反映し、第47週（11/21 土）から動かす。初号（第46週）は 11/13 に手で作った |
 | 2026-10-27 | **週次の実行時刻を土曜 9:00 から 14:00 JST に変えた**（cron `CRON_TZ=Asia/Tokyo 0 14 * * 6`。ユーザーが登録側で変更し、原本を合わせた）。Yahoo の日足は土曜13時 JST に確定するため、9時では先物（金・銀・原油・銅）とドル指数の金曜の値が「読み取り」にしかならなかった。14時なら確定値で書ける。プロンプトの「土曜9時の時点で」も14時に直した。`trig_016QTPqnayVK9vrrR6HSGWNu` に反映済み |

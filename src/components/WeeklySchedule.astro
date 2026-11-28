@@ -1,5 +1,6 @@
 ---
 import { longDate } from '../lib/content';
+import { EN_WEEKLY as W, type Lang } from '../i18n';
 
 /**
  * 来週の主要スケジュール。
@@ -16,23 +17,30 @@ interface Day {
 }
 interface Props {
   days: Day[];
+  lang?: Lang;
 }
-const { days } = Astro.props;
+const { days, lang = 'ja' } = Astro.props;
+const en = lang === 'en';
 
-/** '2026年9月16日（水）' → '9/16（水）' */
+/** '2026年9月16日（水）' → '9/16（水）'、英語は 'Mon 11/16' */
 const shortDate = (iso: string) => {
+  if (en) {
+    const [y, m, d] = iso.split('-').map(Number);
+    const wd = new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });
+    return `${wd} ${m}/${d}`;
+  }
   const full = longDate(iso);
-  const m = full.match(/(\d+)月(\d+)日（(.)）/);
-  return m ? `${m[1]}/${m[2]}（${m[3]}）` : iso;
+  const mm = full.match(/(\d+)月(\d+)日（(.)）/);
+  return mm ? `${mm[1]}/${mm[2]}（${mm[3]}）` : iso;
 };
 ---
 
 {days.length > 0 && (
-  <section class="sched" aria-label="来週の主要スケジュール">
+  <section class="sched" aria-label={en ? W.schedule : '来週の主要スケジュール'}>
     <div class="sec-head">
-      <h2>来週の主要スケジュール</h2>
+      <h2>{en ? W.schedule : '来週の主要スケジュール'}</h2>
       <span class="spacer"></span>
-      <span class="num">★ は最重要</span>
+      <span class="num">{en ? W.starNote : '★ は最重要'}</span>
     </div>
     <ol>
       {days.map((d) => (
@@ -41,7 +49,7 @@ const shortDate = (iso: string) => {
           <ul class="items">
             {d.items.map((it) => (
               <li class:list={{ key: it.key }}>
-                {it.key && <span class="star" aria-label="最重要">★</span>}
+                {it.key && <span class="star" aria-label={en ? W.mostImportant : '最重要'}>★</span>}
                 <span>{it.label}</span>
               </li>
             ))}

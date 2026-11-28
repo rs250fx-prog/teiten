@@ -61,6 +61,7 @@ const excluded = [
   ...unlistedPaths('./src/content/weekly', '/weekly'),
   ...unlistedPaths('./src/content/world', '/world'),
   ...unlistedPaths('./src/content/world-en', '/en/world'),
+  ...unlistedPaths('./src/content/weekly-en', '/en/weekly'),
   ...emptyTopicPaths(),
 ];
 

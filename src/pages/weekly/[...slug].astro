@@ -13,7 +13,7 @@ import WeeklyFlows from '../../components/WeeklyFlows.astro';
 import WeeklyCorrelation from '../../components/WeeklyCorrelation.astro';
 import WeekRanges from '../../components/WeekRanges.astro';
 import {
-  allWeekly, listReports, monthDay, longDate, weekdayJa, shortTitle, tagSlug, isoJst,
+  allWeekly, allWeeklyEn, listReports, monthDay, longDate, weekdayJa, shortTitle, tagSlug, isoJst,
 } from '../../lib/content';
 import { weeklyData } from '../../lib/weekly';
 import { SITE_URL, OPERATOR, PUBLISHER_URL, EDITOR } from '../../config';
@@ -48,6 +48,10 @@ const railItems = inWeek.map((r) => ({
 }));
 
 const latest = reports[0];
+
+// 英語版（src/content/weekly-en）があれば hreflang と言語の切り替えを出す
+const hasEn = (await allWeeklyEn()).some((w) => w.id === entry.id);
+const alternate = hasEn ? `/en/weekly/${entry.id}/` : undefined;
 
 const pageUrl = new URL(`/weekly/${entry.id}/`, SITE_URL).href;
 const modifiedIso = isoJst(d.date ?? d.end, d.updated);
@@ -93,6 +97,7 @@ const breadcrumbs = [{ name: '週次まとめ', path: '/weekly/' }, { name: d.ti
   quotes={latest?.data.snapshot ?? []}
   mastDate={latest?.data.date}
   mastNo={latest?.data.no}
+  alternate={alternate}
 >
   <div class="wrap">
     {/* 日次の記事ページと同じ骨組み。右列には週の数値（寸評なし）と、
