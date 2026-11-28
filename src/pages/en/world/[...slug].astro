@@ -11,7 +11,7 @@ import RailList from '../../../components/RailList.astro';
 import WorldWindows from '../../../components/WorldWindows.astro';
 import WorldGrid from '../../../components/WorldGrid.astro';
 import WorldReview from '../../../components/WorldReview.astro';
-import { allWorldEn, allWorld, listWeekly, monthDay, longDateEn, isoJst } from '../../../lib/content';
+import { allWorldEn, allWorld, listWeekly, allWeeklyEn, monthDay, longDateEn, isoJst } from '../../../lib/content';
 import { actuals } from '../../../lib/world';
 import { EN } from '../../../i18n';
 import { SITE_URL, OPERATOR, PUBLISHER_URL, EDITOR } from '../../../config';
@@ -36,8 +36,14 @@ const ja = (await allWorld()).find((w) => w.id === entry.id);
 const alternate = ja ? `/world/${entry.id}/` : undefined;
 const weekly = await listWeekly();
 const sameWeek = weekly.find((w) => w.id === entry.id);
+// 週次まとめの見出しは日本語なので出さない。英語版があればそちらへ、無ければ日本語版へ送る
+const weeklyEnSame = (await allWeeklyEn()).find((w) => w.id === entry.id);
 const railItems = sameWeek
-  ? [{ href: `/weekly/${sameWeek.id}/`, meta: `WEEK ${sameWeek.data.week} (Japanese)`, title: sameWeek.data.title }]
+  ? [{
+      href: weeklyEnSame ? `/en/weekly/${entry.id}/` : `/weekly/${sameWeek.id}/`,
+      meta: `WEEK ${sameWeek.data.week}`,
+      title: weeklyEnSame ? weeklyEnSame.data.title : `Weekly summary, week ${sameWeek.data.week} (Japanese)`,
+    }]
   : [];
 
 const pageUrl = new URL(`/en/world/${entry.id}/`, SITE_URL).href;
@@ -111,11 +117,7 @@ const breadcrumbs = [{ name: EN.world.title, path: '/en/world/' }, { name: d.tit
           <span>{EN.world.published} {longDateEn(d.date ?? d.end)}</span>
           {d.updated && <span>{EN.world.updated} {d.updated}</span>}
         </div>
-        {d.tags.length > 0 && (
-          <div class="tags plain">
-            {d.tags.map((t) => <span>{t}</span>)}
-          </div>
-        )}
+        {/* タグは日本語のトピック名なので英語版では出さない（リンクでもないため情報にならない） */}
         {alternate && (
           <p class="tr">{EN.world.translated} <a href={alternate} hreflang="ja">{EN.world.original}</a></p>
         )}

@@ -47,11 +47,16 @@ const alternate = ja ? `/weekly/${entry.id}/` : undefined;
 // **見出しは日本語なので出さない。**英語のページに日本語の長い見出しが並ぶのを避け、日付と号数だけにする
 const reports = await listReports();
 const inWeek = reports.filter((r) => r.data.date >= d.start && r.data.date <= d.end).reverse();
+const JA_TEXT = /[ぁ-んァ-ヶ一-龥]/;
 const railItems = inWeek.map((r) => ({
   href: `/reports/${r.id}/`,
   meta: monthDay(r.data.date),
   title: `Daily report No. ${r.data.no} (Japanese)`,
-  value: r.data.headline && { text: r.data.headline.value, dir: r.data.headline.dir },
+  // 代表値は「−3.8%程度」のように日本語が混ざることがある。混ざる号は値を出さない
+  value:
+    r.data.headline && !JA_TEXT.test(r.data.headline.value)
+      ? { text: r.data.headline.value, dir: r.data.headline.dir }
+      : undefined,
 }));
 
 const pageUrl = new URL(`/en/weekly/${entry.id}/`, SITE_URL).href;

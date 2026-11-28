@@ -622,9 +622,20 @@ def check_weekly_en(p):
         err(p, f"performance の件数が日本語版と違います（{len(erows)} / {len(jrows)}）")
     for i, (a, b) in enumerate(zip(jrows, erows)):
         tag = f"performance[{i + 1}]"
-        for k in ("key", "group", "value", "change", "dir"):
+        for k in ("key", "group", "dir"):
             if (a.get(k) or "") != (b.get(k) or ""):
                 err(p, f"{tag} の {k} が日本語版と違います（{b.get(k)} / {a.get(k)}）。値は訳で変えない")
+        # 値はふつう数字だけなので完全一致。「104ドル台」「101台前半」のように
+        # 日本語の語が混ざる値だけ、英語に言い換えてよい（数字は一致していること）
+        for k in ("value", "change"):
+            av, bv = str(a.get(k) or ""), str(b.get(k) or "")
+            if JA_CHARS.search(av):
+                if nums(av) != nums(bv):
+                    err(p, f"{tag} の {k} の数値が日本語版と違います（{bv} / {av}）")
+                elif JA_CHARS.search(bv):
+                    err(p, f"{tag} の {k} に日本語が残っています（{bv}）。単位や言い回しは英語にする")
+            elif av != bv:
+                err(p, f"{tag} の {k} が日本語版と違います（{bv} / {av}）。値は訳で変えない")
         if (a.get("status") or "確定") != (b.get("status") or "確定"):
             err(p, f"{tag} の status が日本語版と違います")
         check_translated(p, f"{tag} の label", a.get("label"), b.get("label"))
@@ -644,6 +655,8 @@ def check_weekly_en(p):
         for k in ("value", "change"):
             if nums(a.get(k)) != nums(b.get(k)):
                 err(p, f"flows[{i}] の {k} の数値が日本語版と違います（{b.get(k)} / {a.get(k)}）")
+            elif JA_CHARS.search(str(b.get(k) or "")):
+                err(p, f"flows[{i}] の {k} に日本語が残っています（{b.get(k)}）。単位は英語にする")
         for k in ("dir", "status", "source"):
             if (a.get(k) or "") != (b.get(k) or ""):
                 err(p, f"flows[{i}] の {k} が日本語版と違います。出典は訳で変えない")
@@ -668,9 +681,16 @@ def check_weekly_en(p):
         if len(jl) != len(el):
             err(p, f"{tag} の件数が日本語版と違います（{len(el)} / {len(jl)}）")
         for i, (a, b) in enumerate(zip(jl, el), 1):
-            for k in ("kind", "value"):
-                if (a.get(k) or "") != (b.get(k) or ""):
-                    err(p, f"{tag}[{i}] の {k} が日本語版と違います。水準は訳で変えない")
+            if (a.get("kind") or "") != (b.get("kind") or ""):
+                err(p, f"{tag}[{i}] の kind が日本語版と違います")
+            av, bv = str(a.get("value") or ""), str(b.get("value") or "")
+            if JA_CHARS.search(av):
+                if nums(av) != nums(bv):
+                    err(p, f"{tag}[{i}] の value の数値が日本語版と違います（{bv} / {av}）")
+                elif JA_CHARS.search(bv):
+                    err(p, f"{tag}[{i}] の value に日本語が残っています（{bv}）")
+            elif av != bv:
+                err(p, f"{tag}[{i}] の value が日本語版と違います。水準は訳で変えない")
             check_translated(p, f"{tag}[{i}] の note", a.get("note"), b.get("note"), required=False)
 
     check_levels("levels", ja.get("levels") or [], fm.get("levels") or [])

@@ -22,6 +22,8 @@ export const EN = {
     { href: '/en/about/', label: 'About' },
   ],
   langSwitch: { label: '日本語', title: 'Japanese edition' },
+  /** 運営者情報の住所。`config.ts` の `OPERATOR.address` を日本の住所の順に直したもの（同じ場所を指す） */
+  address: 'Aoyama Marutake Building, 3-1-36 Minami-Aoyama, Minato-ku, Tokyo 107-0062, Japan',
   themeToggle: 'Toggle color scheme',
   /**
    * 免責。日本語の DISCLAIMER の訳に、海外の読者向けの2文（どの国の規制にも服していない、

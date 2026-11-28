@@ -45,6 +45,16 @@ const manual = flows.filter((f) => f.status !== '未確認');
 const show = cot.length > 0 || etf?.total != null || (fw?.meetings.length ?? 0) > 0 || manual.length > 0;
 
 const md = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`;
+/**
+ * `btc_etf.note` は `fetch-weekly.py` が日本語で書く（「3日中3日分の合計」だけ）。
+ * JSON は言語ごとに持たないので、英語ページではここで言い換える。形が合わなければ出さない。
+ */
+function etfNote(note?: string) {
+  if (!note) return '';
+  if (!en) return note;
+  const m = /^(\d+)日中(\d+)日分の合計$/.exec(note);
+  return m ? `${m[2]} of ${m[1]} days counted` : '';
+}
 const maxAbs = (xs: number[]) => Math.max(1, ...xs.map(Math.abs));
 ---
 
@@ -129,7 +139,7 @@ const maxAbs = (xs: number[]) => Math.max(1, ...xs.map(Math.abs));
               {etf.status === '読み取り' && <span class="badge">{en ? W.reading : '読み取り'}</span>}
               <span class="sub">
                 {etf.days.map((d) => `${md(d.date)} ${d.flow == null ? (en ? W.notTallied : '未集計') : signed(d.flow, 1)}`).join(' / ')}
-                {etf.note && `（${etf.note}）`}　Farside Investors
+                {etfNote(etf.note) && (en ? ` (${etfNote(etf.note)})` : `（${etfNote(etf.note)}）`)}　Farside Investors
               </span>
             </li>
           )}
