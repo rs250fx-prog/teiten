@@ -1,0 +1,197 @@
+---
+/**
+ * クロスアセット・ヒートマップ（2026-11-29。日次の全号に出す）。
+ *
+ * その号の snapshot と infographic.quotes の前日比を、資産の種類ごとに1枚に並べる。
+ * 色の向き（緑・赤）は dir、濃さは「その銘柄のふだんの動きの何倍か」で付ける。
+ *
+ *   ふだんの動き = 発行日より前の公開済みの号（直近20号）で、同じ label の行の
+ *                  変化幅の絶対値の中央値
+ *
+ * 新しく数値を取りに行かない。過去の号に同じ label が5号未満しか無い銘柄は
+ * 倍率を出さず、薄い色で「比較なし」とする。
+ */
+interface Quote { label: string; value: string; change: string; dir: 'up' | 'down' | 'flat' }
+interface Props {
+  date: string;
+  quotes: Quote[];
+  /** 発行日より前の号。新しい順でも古い順でもよい */
+  history: { date: string; quotes: Quote[] }[];
+}
+const { date, quotes, history } = Astro.props;
+
+const N = 20;
+const MIN_HIST = 5;
+
+/** "−2.81%" / "+12bp" → { v: -2.81, unit: '%' } */
+function parseChange(s: string) {
+  // 「±0bp」は0として数える（落とすと履歴の中央値が上に偏る）。
+  // 「程度」「◯/◯時点」「—」などは読まない（その号のヒートマップに出ず、履歴にも入らない）
+  const t = String(s ?? '').replace(/[−–]/g, '-').replace(/±/g, '').replace(/[,\s]/g, '');
+  const m = t.match(/^([+-]?\d+(?:\.\d+)?)(%|bp)$/);
+  return m ? { v: Number(m[1]), unit: m[2] } : null;
+}
+const median = (a: number[]) => {
+  const s = [...a].sort((x, y) => x - y);
+  const k = Math.floor(s.length / 2);
+  return s.length % 2 ? s[k] : (s[k - 1] + s[k]) / 2;
+};
+
+const past = history
+  .filter((h) => h.date < date)
+  .sort((a, b) => b.date.localeCompare(a.date))
+  .slice(0, N);
+
+const GROUPS: { name: string; re: RegExp }[] = [
+  { name: '金利', re: /金利|債|10Y/ },
+  { name: 'ドル', re: /DXY|USD\/JPY|EUR/ },
+  { name: '商品', re: /XAU|金|銀|プラチナ|銅|WTI|Brent/ },
+  { name: '株', re: /S&P|Nasdaq|ダウ|日経225|エヌビディア|AMD|半導体|マイクロン|アルファベット/ },
+  { name: 'Crypto', re: /BTC/ },
+  { name: 'Volatility', re: /VIX|日経VI|MOVE/ },
+];
+
+const cells = quotes
+  .map((q) => {
+    const c = parseChange(q.change);
+    if (!c) return null;
+    const hist = past
+      .map((h) => h.quotes.find((x) => x.label === q.label))
+      .map((x) => (x ? parseChange(x.change) : null))
+      .filter((x): x is { v: number; unit: string } => !!x && x.unit === c.unit)
+      .map((x) => Math.abs(x.v));
+    const typical = hist.length >= MIN_HIST ? median(hist) : null;
+    const ratio = typical && typical > 0 ? Math.abs(c.v) / typical : null;
+    // 濃さの段（0〜4）。倍率が無い銘柄は 0
+    const lv = ratio === null ? 0 : ratio < 0.5 ? 1 : ratio < 1 ? 2 : ratio < 2 ? 3 : 4;
+    const g = GROUPS.find((g) => g.re.test(q.label));
+    return { ...q, ratio, lv, n: hist.length, group: g?.name ?? 'その他' };
+  })
+  .filter((x): x is NonNullable<typeof x> => !!x);
+
+const groupNames = [...GROUPS.map((g) => g.name), 'その他'];
+const rows = groupNames
+  .map((name) => ({ name, items: cells.filter((c) => c.group === name) }))
+  .filter((r) => r.items.length > 0);
+
+const top = [...cells].filter((c) => c.ratio !== null).sort((a, b) => b.ratio! - a.ratio!)[0];
+const fmtRatio = (r: number) => (r >= 10 ? r.toFixed(0) : r.toFixed(1));
+---
+
+{/* 倍率を1つも出せない号（創刊直後の数号）には出さない */}
+{top && (
+  <section class="heat" aria-label="クロスアセット・ヒートマップ">
+    <div class="heat-h">
+      <span>クロスアセット・ヒートマップ</span>
+      <span class="heat-sub">前日比 ／ 濃さ＝ふだんの動きの何倍か</span>
+    </div>
+    {top && (
+      <p class="heat-lead">
+        いちばん大きく動いたのは<b>{top.label}</b>（{top.change}）。ふだんの<b>{fmtRatio(top.ratio!)}倍</b>の動き。
+      </p>
+    )}
+    <div class="heat-grid">
+      {rows.map((r) => (
+        <div class="heat-row">
+          <div class="heat-g">{r.name}</div>
+          <ul>
+            {r.items.map((c) => (
+              <li
+                class:list={['cell', c.dir, `lv${c.lv}`]}
+                title={c.ratio !== null ? `直近${c.n}号の変化幅の中央値の${fmtRatio(c.ratio)}倍` : `比べる号が${c.n}号しか無い`}
+              >
+                <span class="l">{c.label}</span>
+                <span class="c">{c.change}</span>
+                <span class="x">{c.ratio !== null ? `×${fmtRatio(c.ratio)}` : '比較なし'}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+    <div class="heat-legend" aria-hidden="true">
+      <span>ふだんの</span>
+      <i class="lv1"></i><span>0.5倍未満</span>
+      <i class="lv2"></i><span>〜1倍</span>
+      <i class="lv3"></i><span>〜2倍</span>
+      <i class="lv4"></i><span>2倍以上</span>
+    </div>
+    <p class="heat-note">
+      ふだんの動き＝この号より前の公開済みの号（直近{N}号）で、同じ指標の前日比の絶対値の中央値。
+      比べる号が{MIN_HIST}号未満の指標は倍率を出さない。数値は本号の数値指標と同じ値。
+    </p>
+  </section>
+)}
+
+<style>
+  .heat {
+    margin: 30px 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 24px 26px;
+  }
+  .heat-h {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6px 16px;
+    font-family: var(--sa);
+    font-size: 10.5px;
+    letter-spacing: .16em;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .heat-sub { letter-spacing: .04em; }
+  .heat-lead { margin: 14px 0 4px; font-size: 15px; line-height: 1.7; }
+  .heat-lead b { color: var(--accent); }
+  .heat-grid { margin-top: 10px; }
+  .heat-row {
+    display: grid;
+    grid-template-columns: 84px 1fr;
+    gap: 12px;
+    align-items: start;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .heat-row:last-child { border-bottom: 0; }
+  .heat-g { font-size: 12px; font-weight: 700; padding-top: 10px; color: var(--accent); }
+  ul { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; }
+  .cell {
+    --tone: var(--line-2);
+    display: grid;
+    gap: 2px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid color-mix(in srgb, var(--tone) 45%, transparent);
+    background: color-mix(in srgb, var(--tone) var(--a, 6%), var(--surface));
+    font-variant-numeric: tabular-nums;
+  }
+  .cell.up { --tone: var(--up); }
+  .cell.down { --tone: var(--down); }
+  .cell.flat { --tone: var(--line-2); }
+  .lv0 { --a: 4%; border-style: dashed; }
+  .lv1 { --a: 10%; }
+  .lv2 { --a: 24%; }
+  .lv3 { --a: 48%; }
+  .lv4 { --a: 82%; color: var(--bg); }
+  .cell .l { font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cell .c { font-family: var(--sa); font-size: 16px; font-weight: 700; }
+  .cell .x { font-family: var(--sa); font-size: 11px; }
+  .heat-legend {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px;
+    margin-top: 14px; font-size: 11.5px;
+  }
+  .heat-legend i {
+    width: 22px; height: 12px; border-radius: 3px;
+    background: color-mix(in srgb, var(--down) var(--a), var(--surface));
+    border: 1px solid color-mix(in srgb, var(--down) 45%, transparent);
+  }
+  .heat-legend i + span { margin-right: 6px; }
+  .heat-note { margin-top: 10px; font-size: 11.5px; line-height: 1.7; }
+  @media (max-width: 560px) {
+    .heat { padding: 18px 16px; }
+    .heat-row { grid-template-columns: 1fr; gap: 6px; }
+    .heat-g { padding-top: 0; }
+  }
+</style>

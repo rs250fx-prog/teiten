@@ -6,6 +6,7 @@ import Subscribe from '../../components/Subscribe.astro';
 import RailList from '../../components/RailList.astro';
 import PriceLadder from '../../components/PriceLadder.astro';
 import ScenarioReview from '../../components/ScenarioReview.astro';
+import CrossAssetHeat from '../../components/CrossAssetHeat.astro';
 import {
   allReports, listReports, listWeekly, relatedReports, shortTitle,
   dotted, longDate, weekdayJa, tagSlug, isoJst,
@@ -154,6 +155,16 @@ const breadcrumbs = [
       {/* 要点の直後、本文の前。前号の見立てがどうなったかを先に示してから
           その日の話に入る。読み終えたあとの付け足しにしない */}
       {d.review && <ScenarioReview review={d.review} />}
+
+      {/* 前日比を1枚に。濃さは過去の号から出した「ふだんの動き」の倍率 */}
+      <CrossAssetHeat
+        date={d.date}
+        quotes={[...d.snapshot, ...(((d.infographic as any)?.quotes ?? []) as any[])]}
+        history={visible.map((e) => ({
+          date: e.data.date,
+          quotes: [...e.data.snapshot, ...((((e.data.infographic as any)?.quotes) ?? []) as any[])],
+        }))}
+      />
 
       <PriceLadder levels={d.levels} />
 
